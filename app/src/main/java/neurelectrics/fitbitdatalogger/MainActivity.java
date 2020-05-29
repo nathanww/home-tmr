@@ -231,6 +231,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }, delay);
         }
+
+
         private float average(ArrayList<Float> data) {
             float sum = 0;
             for (int i=0; i< data.size(); i++) {
@@ -305,8 +307,8 @@ public class MainActivity extends AppCompatActivity {
                     tmrStatus = "0,";
                 }
             }
-            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+String.valueOf(targetVolume)+","+md.getCurrentMedia();
-            //tmrStatus=tmrStatus+prob+","+String.valueOf(mp.getCurrentPosition())+","+ String.valueOf(targetVolume);
+            //tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+String.valueOf(targetVolume)+","+md.getCurrentMedia();
+            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(targetVolume);
             return tmrStatus;
         }
 

@@ -1,11 +1,25 @@
 package neurelectrics.fitbitdatalogger;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v4.util.Pair;
+import android.util.Log;
+import android.webkit.MimeTypeMap;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -13,6 +27,11 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.os.ParcelFileDescriptor.MODE_WORLD_READABLE;
+import static android.support.v4.app.ActivityCompat.requestPermissions;
 
 public class MediaHandler {
     private final Context context;
@@ -29,9 +48,14 @@ public class MediaHandler {
     private HashMap<Integer, String> mediaFileNames = new HashMap<>();
     private Pair<Float, Float> volume = new Pair(1.0f, 1.0f);
     private int currentMediaID;
-
+    final private String logFileName = "MediaLog.txt";
+    private File logFile;
+    private File storageDirectory;
+    private BufferedWriter logFileWriter;
 
     public void readFiles() {
+        storageDirectory = context.getFilesDir();
+        setLogFile();
         mediaData = getSortedMediaData();
         mediaDataHalves = getMediaDataHalves(mediaData);
         setPlayableMedia();
@@ -60,15 +84,54 @@ public class MediaHandler {
     }
 
     public String getCurrentMedia(){
-        return mediaFileNames.get(currentMediaID);
+        if(isMediaPlaying()){
+            return mediaFileNames.get(currentMediaID);
+        } else{
+            return "none";
+        }
+    }
+
+    private void setLogFile(){
+        logFile = new File(storageDirectory, logFileName);
+        if(!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void setLogFileWriter(){
+        try {
+            logFileWriter = new BufferedWriter(new FileWriter(logFile, true));
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void writeToLogFile(String signal, int mediaLength, Float leftVolume, Float rightVolume){
+        setLogFileWriter();
+        String timeStamp = String.valueOf(System.currentTimeMillis());
+        String line = timeStamp + "," + signal + "," + String.valueOf(mediaLength) + "," +
+                String.valueOf(leftVolume) + "," + String.valueOf(rightVolume);
+        try {
+            System.out.println("HELLO");
+            logFileWriter.write(line);
+            logFileWriter.newLine();
+            logFileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void setPlayableMedia(){
-        final List<List<Pair>> halves = new ArrayList();
-        halves.add(mediaDataHalves.first);
-        halves.add(mediaDataHalves.second);
-        Collections.shuffle(halves);
-        playableMedia = halves.get(0);
+        //final List<List<Pair>> halves = new ArrayList();
+        //halves.add(mediaDataHalves.first);
+        //halves.add(mediaDataHalves.second);
+        //Collections.shuffle(halves);
+        //playableMedia = halves.get(0);
+        playableMedia = mediaDataHalves.first;
     }
 
     private void setMediaQueue(){
@@ -89,8 +152,8 @@ public class MediaHandler {
         }
         mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
         currentMediaID = CurrentTrack.second;
-        System.out.println(getCurrentMedia());
         mediaPlayer.setVolume(volume.first,volume.second);
+        writeToLogFile(mediaFileNames.get(currentMediaID), mediaPlayer.getDuration(), volume.first, volume.second);
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
@@ -138,15 +201,24 @@ public class MediaHandler {
         return mediaData;
     }
 
+    private void WriteRecord(){
+
+    }
+
     private List<String> readMediaFile(){
         AssetManager assetManager = this.context.getAssets();
         List<String> mediaLines = new ArrayList<>();
         try {
-            for(String file: assetManager.list("")) {
-                String ext = (file.lastIndexOf(".") == -1) ? "" : file.substring(file.lastIndexOf("."));
+            for(File file: storageDirectory.listFiles()) {
+                String fileName = file.getName();
+                System.out.println(fileName);
+                String ext = (fileName.lastIndexOf(".") == -1) ? "" : fileName.substring(fileName.lastIndexOf("."));
                 if (ext.equals(".txt")) {
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(assetManager.open(file)));
-                    if (reader.readLine().contains("WRITE_EXTERNAL_STORAGE")) {
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    System.out.println("1");
+                    String firstLine = reader.readLine();
+                    System.out.println(firstLine);
+                    if (firstLine.contains("WRITE_EXTERNAL_STORAGE")) {
                         String line;
                         while ((line = reader.readLine()) != null)
                             mediaLines.add(line);
@@ -154,7 +226,7 @@ public class MediaHandler {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return mediaLines; // Returns empty List if no valid file was found
