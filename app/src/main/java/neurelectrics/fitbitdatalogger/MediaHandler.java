@@ -33,26 +33,41 @@ import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 import static android.os.ParcelFileDescriptor.MODE_WORLD_READABLE;
 import static android.support.v4.app.ActivityCompat.requestPermissions;
 
+
+/**
+ * @author Torin Kovach
+ * @Date Mon 1-Jun-2020
+ */
 public class MediaHandler {
     private final Context context;
 
+    /** Constructor
+     * @param context Application Context object
+     */
     public MediaHandler(Context context){
         this.context = context;
     }
 
-    private List<Pair<Float, Integer>> mediaData;
-    private Pair<List<Pair>, List<Pair>> mediaDataHalves;
-    private List<Pair> playableMedia;
-    private List<Pair> mediaQueue = new ArrayList<Pair>();
-    private MediaPlayer mediaPlayer;
-    private HashMap<Integer, String> mediaFileNames = new HashMap<>();
-    private Pair<Float, Float> volume = new Pair(1.0f, 1.0f);
-    private int currentMediaID;
-    final private String logFileName = "MediaLog.txt";
-    private File logFile;
-    private File storageDirectory;
-    private BufferedWriter logFileWriter;
+    /*
+    NOTE: any sound file to be played is identified by it's resource identifier and score.
+            A HashMap between resID and filename is used to get identifying filename
+     */
+    private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
+    private Pair<List<Pair>, List<Pair>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
+    private List<Pair> playableMedia; // All possible pairs to ever be played (one half)
+    private List<Pair> mediaQueue = new ArrayList<Pair>(); // All possible pairs to be played next (no repeats until all sounds played)
+    private MediaPlayer mediaPlayer; // The MediaPlayer object used to reference and play sounds
+    private HashMap<Integer, String> mediaFileNames = new HashMap<>(); // (resID, filename) pairs allow getting filename using resID
+    private Pair<Float, Float> volume = new Pair(1.0f, 1.0f); // Volume to play at
+    private int currentMediaID; // resID of the currently playing or last played (if there is a pause) media
+    final private String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
+    private File logFile; // File object for the log file
+    private File storageDirectory; // Directory in internal storage in which logFile is stored
+    private BufferedWriter logFileWriter; // Writes to the log file
 
+    /**
+     * Reads the files and sets up the MediaHandler for audio playback
+     */
     public void readFiles() {
         storageDirectory = context.getFilesDir();
         setLogFile();
@@ -62,27 +77,51 @@ public class MediaHandler {
         setNextTrack();
     }
 
+    /**
+     * Starts audio playback
+     */
     public void startMedia(){
         mediaPlayer.start();
     }
 
+    /**
+     * Pauses audio playback
+     */
     public void pauseMedia(){
         mediaPlayer.pause();
     }
 
+    /**
+     * Checks if audio currently playing
+     * @return If currently playing True, else False
+     */
     public boolean isMediaPlaying(){
         return mediaPlayer.isPlaying();
     }
 
+    /**
+     * Gets the current playback position in the current audio file
+     * @return Current playback position in the current audio file
+     */
     public int getMediaPosition(){
         return mediaPlayer.getCurrentPosition();
     }
 
+    /**
+     * Sets the volume of audio playback
+     * Currently left & right volume will always be the same
+     * @param leftVolume Left volume to set
+     * @param rightVolume Right volume to set
+     */
     public void setMediaVolume(float leftVolume, float rightVolume){
         volume = new Pair<Float, Float>(leftVolume, rightVolume);
         mediaPlayer.setVolume(volume.first, volume.second);
     }
 
+    /**
+     * Gets the currently playing media filename. If no media playing, returns "none"
+     * @return Currently playing media filename of "none" if no media playing
+     */
     public String getCurrentMedia(){
         if(isMediaPlaying()){
             return mediaFileNames.get(currentMediaID);
@@ -91,6 +130,9 @@ public class MediaHandler {
         }
     }
 
+    /**
+     * Sets up logFile File object. Creates the logFile if it doesn't already exist
+     */
     private void setLogFile(){
         logFile = new File(storageDirectory, logFileName);
         if(!logFile.exists()) {
@@ -102,6 +144,9 @@ public class MediaHandler {
         }
     }
 
+    /**
+     * Sets up BufferedWriter object to write to logFile
+     */
     private void setLogFileWriter(){
         try {
             logFileWriter = new BufferedWriter(new FileWriter(logFile, true));
@@ -110,6 +155,16 @@ public class MediaHandler {
         }
     }
 
+    /**
+     * Writes a single record (1 line) to the logFile
+     * One record is written every time an audio file is played
+     * Record is written to as such:
+     * TIMESTAMP, NAME OF AUDIO FILE, DURATION OF AUDIO FILE, LEFT VOLUME PLAYED AT, RIGHT VOLUME PLAYED AT
+     * @param signal The filename of the audio file played
+     * @param mediaLength The duration of the audio file played
+     * @param leftVolume The left volume of the audio file played
+     * @param rightVolume The right volume of the audio file played
+     */
     private void writeToLogFile(String signal, int mediaLength, Float leftVolume, Float rightVolume){
         setLogFileWriter();
         String timeStamp = String.valueOf(System.currentTimeMillis());
@@ -125,7 +180,11 @@ public class MediaHandler {
         }
     }
 
+    /**
+     * Sets the group of audio files to be played for the whole time the application is live
+     */
     private void setPlayableMedia(){
+        // THIS CODE CAN BE USED TO RANDOMIZE WHICH HALF OF THE SOUNDS ARE PLAYED
         //final List<List<Pair>> halves = new ArrayList();
         //halves.add(mediaDataHalves.first);
         //halves.add(mediaDataHalves.second);
@@ -134,12 +193,20 @@ public class MediaHandler {
         playableMedia = mediaDataHalves.first;
     }
 
+    /**
+     * Sets the queue of sounds to be played (mediaQueue)
+     * While playable media holds every file to possibly be played,
+     * media queue is a record of which sound should be played immediately next (no repeats, randomized)
+     */
     private void setMediaQueue(){
         mediaQueue = new ArrayList<>(playableMedia);
         Collections.shuffle(mediaQueue);
     }
 
-
+    /**
+     * Sets up the new media to be played after the initial track is complete
+     * "Recursively" called using MediaPlayed OnCompletion callback function
+     */
     private void setNextTrack(){
         if(mediaQueue.size() == 0) {
             setMediaQueue();
@@ -163,6 +230,11 @@ public class MediaHandler {
         });
     }
 
+    /**
+     * Breaks sorted (score, resID) pairs into two halves
+     * @param sortedMediaData all audio files in (score, resID) pairs, sorted by score
+     * @return Pair of (odd-indexed audio file pairs, even-indexed audio file pairs)
+     */
     private Pair<List<Pair>, List<Pair>> getMediaDataHalves(List<Pair<Float, Integer>> sortedMediaData){
         Pair<List<Pair>, List<Pair>> mediaDataHalves = new Pair<List<Pair>, List<Pair>>(new ArrayList<Pair>(), new ArrayList<Pair>());
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
@@ -175,6 +247,10 @@ public class MediaHandler {
         return mediaDataHalves;
     }
 
+    /**
+     * Sorts all (score, resID) audio files by score
+     * @return All (score, resID) audio files sorted by score
+     */
     private List<Pair<Float, Integer>> getSortedMediaData(){
         List<Pair<Float, Integer>> sortedMediaData = getMediaData();
         Collections.sort(sortedMediaData, new Comparator<Pair<Float, Integer>>() {
@@ -186,6 +262,10 @@ public class MediaHandler {
         return sortedMediaData;
     }
 
+    /**
+     * Gets lines of media data file using getMediaData, gets resource identifiers based on read filename
+     * @return Unsorted list of (score, resID) pairs for all audio files referenced in the media data
+     */
     private List<Pair<Float, Integer>> getMediaData(){
         final List<String> mediaFileLines = readMediaFile();
         System.out.println(mediaFileLines);
@@ -201,12 +281,11 @@ public class MediaHandler {
         return mediaData;
     }
 
-    private void WriteRecord(){
-
-    }
-
+    /**
+     * Locates media data file, then gets all of the lines of the media data file
+     * @return List of all the lines in a media data file
+     */
     private List<String> readMediaFile(){
-        AssetManager assetManager = this.context.getAssets();
         List<String> mediaLines = new ArrayList<>();
         try {
             for(File file: storageDirectory.listFiles()) {
@@ -229,6 +308,6 @@ public class MediaHandler {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return mediaLines; // Returns empty List if no valid file was found
+        return mediaLines; // Returns empty list if no valid file was found
     }
 }
