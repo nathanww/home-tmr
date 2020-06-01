@@ -60,7 +60,7 @@ public class MediaHandler {
     private HashMap<Integer, String> mediaFileNames = new HashMap<>(); // (resID, filename) pairs allow getting filename using resID
     private Pair<Float, Float> volume = new Pair(1.0f, 1.0f); // Volume to play at
     private int currentMediaID; // resID of the currently playing or last played (if there is a pause) media
-    final private String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
+    private String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
     private File logFile; // File object for the log file
     private File storageDirectory; // Directory in internal storage in which logFile is stored
     private BufferedWriter logFileWriter; // Writes to the log file
@@ -75,6 +75,16 @@ public class MediaHandler {
         mediaDataHalves = getMediaDataHalves(mediaData);
         setPlayableMedia();
         setNextTrack();
+    }
+
+    /**
+     * Reads the files and sets up the MediaHandler for audio playback
+     * Allows specification of a different location/filename for the log file
+     * @param logFileName New location/filename for the log file
+     */
+    public void readFiles(String logFileName){
+        this.logFileName = logFileName;
+        readFiles();
     }
 
     /**
