@@ -69,7 +69,8 @@ public class MediaHandler {
      * Reads the files and sets up the MediaHandler for audio playback
      */
     public void readFiles() {
-        storageDirectory = context.getFilesDir();
+        storageDirectory = Environment.getExternalStorageDirectory();
+        System.out.println("dir:"+storageDirectory.toString());
         setLogFile();
         mediaData = getSortedMediaData();
         mediaDataHalves = getMediaDataHalves(mediaData);
@@ -234,7 +235,7 @@ public class MediaHandler {
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                setNextTrack();
+                    setNextTrack();
                 startMedia();
             }
         });
@@ -302,17 +303,15 @@ public class MediaHandler {
                 String fileName = file.getName();
                 System.out.println(fileName);
                 String ext = (fileName.lastIndexOf(".") == -1) ? "" : fileName.substring(fileName.lastIndexOf("."));
-                if (ext.equals(".txt")) {
+                if (fileName.indexOf(("BedtimeTaskLog")) > -1) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     System.out.println("1");
                     String firstLine = reader.readLine();
                     System.out.println(firstLine);
-                    if (firstLine.contains("WRITE_EXTERNAL_STORAGE")) {
                         String line;
                         while ((line = reader.readLine()) != null)
                             mediaLines.add(line);
                         return mediaLines;
-                    }
                 }
             }
         } catch (Exception e) {
