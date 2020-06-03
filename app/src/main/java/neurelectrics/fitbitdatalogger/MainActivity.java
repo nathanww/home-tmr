@@ -167,8 +167,8 @@ public class MainActivity extends AppCompatActivity {
         });
         //set up the audio player
         //final MediaPlayer mp = MediaPlayer.create(this, R.raw.sleepmusic);
-        final MediaHandler md = new MediaHandler(this);
-        md.readFiles("ButtonMediaLog.txt");
+        final MediaHandler md = new TestMediaHandler(this);
+        md.readFiles();
         //mp.setLooping(true);
         //mp.setVolume(1.0f,1.0f);
         final Button testButton = (Button) findViewById(R.id.testButton);

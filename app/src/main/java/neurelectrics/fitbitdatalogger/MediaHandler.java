@@ -1,37 +1,22 @@
 package neurelectrics.fitbitdatalogger;
 
-import android.content.ContentResolver;
 import android.content.Context;
-import android.content.res.AssetManager;
-import android.database.Cursor;
 import android.media.MediaPlayer;
-import android.net.Uri;
 import android.os.Environment;
-import android.provider.MediaStore;
+import android.os.Handler;
 import android.support.v4.util.Pair;
-import android.util.Log;
-import android.webkit.MimeTypeMap;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-
-import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
-import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
-import static android.os.ParcelFileDescriptor.MODE_WORLD_READABLE;
-import static android.support.v4.app.ActivityCompat.requestPermissions;
 
 
 /**
@@ -39,7 +24,7 @@ import static android.support.v4.app.ActivityCompat.requestPermissions;
  * @Date Mon 1-Jun-2020
  */
 public class MediaHandler {
-    private final Context context;
+    final Context context;
 
     /** Constructor
      * @param context Application Context object
@@ -52,19 +37,20 @@ public class MediaHandler {
     NOTE: any sound file to be played is identified by it's resource identifier and score.
             A HashMap between resID and filename is used to get identifying filename
      */
+    private final static int DELAY = 10000;
+    private boolean isDelaying = false;
     private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
-    private Pair<List<Pair>, List<Pair>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
-    private List<Pair> playableMedia; // All possible pairs to ever be played (one half)
+    private Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
+    private List<Pair<Float, Integer>> playableMedia; // All possible pairs to ever be played (one half)
     private List<Pair> mediaQueue = new ArrayList<Pair>(); // All possible pairs to be played next (no repeats until all sounds played)
     private MediaPlayer mediaPlayer; // The MediaPlayer object used to reference and play sounds
-    private HashMap<Integer, String> mediaFileNames = new HashMap<>(); // (resID, filename) pairs allow getting filename using resID
+    HashMap<Integer, String> mediaFileNames = new HashMap<>(); // (resID, filename) pairs allow getting filename using resID
     private Pair<Float, Float> volume = new Pair(1.0f, 1.0f); // Volume to play at
     private int currentMediaID; // resID of the currently playing or last played (if there is a pause) media
-    private String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
+    String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
     private File logFile; // File object for the log file
     private File storageDirectory; // Directory in internal storage in which logFile is stored
     private BufferedWriter logFileWriter; // Writes to the log file
-
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
@@ -77,6 +63,7 @@ public class MediaHandler {
         setPlayableMedia();
         setNextTrack();
     }
+
 
     /**
      * Reads the files and sets up the MediaHandler for audio playback
@@ -92,6 +79,7 @@ public class MediaHandler {
      * Starts audio playback
      */
     public void startMedia(){
+        isDelaying = true;
         mediaPlayer.start();
     }
 
@@ -99,6 +87,7 @@ public class MediaHandler {
      * Pauses audio playback
      */
     public void pauseMedia(){
+        isDelaying = false;
         mediaPlayer.pause();
     }
 
@@ -210,7 +199,7 @@ public class MediaHandler {
      * media queue is a record of which sound should be played immediately next (no repeats, randomized)
      */
     private void setMediaQueue(){
-        mediaQueue = new ArrayList<>(playableMedia);
+        mediaQueue = new ArrayList<Pair>(playableMedia);
         Collections.shuffle(mediaQueue);
     }
 
@@ -235,8 +224,17 @@ public class MediaHandler {
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
-                    setNextTrack();
-                startMedia();
+                isDelaying = true;
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable(){
+                    @Override
+                    public void run() {
+                        setNextTrack();
+                        if(isDelaying){
+                            startMedia();
+                        }
+                    }
+                }, DELAY);
             }
         });
     }
@@ -246,8 +244,8 @@ public class MediaHandler {
      * @param sortedMediaData all audio files in (score, resID) pairs, sorted by score
      * @return Pair of (odd-indexed audio file pairs, even-indexed audio file pairs)
      */
-    private Pair<List<Pair>, List<Pair>> getMediaDataHalves(List<Pair<Float, Integer>> sortedMediaData){
-        Pair<List<Pair>, List<Pair>> mediaDataHalves = new Pair<List<Pair>, List<Pair>>(new ArrayList<Pair>(), new ArrayList<Pair>());
+    Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> getMediaDataHalves(List<Pair<Float, Integer>> sortedMediaData){
+        Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves = new Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>>(new ArrayList<Pair<Float, Integer>>(), new ArrayList<Pair<Float, Integer>>());
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
             if(i%2 == 1){
                 mediaDataHalves.first.add(sortedMediaData.get(i-1));
@@ -262,7 +260,7 @@ public class MediaHandler {
      * Sorts all (score, resID) audio files by score
      * @return All (score, resID) audio files sorted by score
      */
-    private List<Pair<Float, Integer>> getSortedMediaData(){
+    List<Pair<Float, Integer>> getSortedMediaData(){
         List<Pair<Float, Integer>> sortedMediaData = getMediaData();
         Collections.sort(sortedMediaData, new Comparator<Pair<Float, Integer>>() {
             @Override
@@ -277,7 +275,7 @@ public class MediaHandler {
      * Gets lines of media data file using getMediaData, gets resource identifiers based on read filename
      * @return Unsorted list of (score, resID) pairs for all audio files referenced in the media data
      */
-    private List<Pair<Float, Integer>> getMediaData(){
+    List<Pair<Float, Integer>> getMediaData(){
         final List<String> mediaFileLines = readMediaFile();
         System.out.println(mediaFileLines);
         final List<Pair<Float, Integer>> mediaData = new ArrayList<>();
@@ -302,8 +300,7 @@ public class MediaHandler {
             for(File file: storageDirectory.listFiles()) {
                 String fileName = file.getName();
                 System.out.println(fileName);
-                String ext = (fileName.lastIndexOf(".") == -1) ? "" : fileName.substring(fileName.lastIndexOf("."));
-                if (fileName.indexOf(("BedtimeTaskLog")) > -1) {
+                if (fileName.contains(("BedtimeTaskLog"))) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     System.out.println("1");
                     String firstLine = reader.readLine();
