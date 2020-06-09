@@ -96,7 +96,7 @@ public class MediaHandler {
      * @return If currently playing True, else False
      */
     public boolean isMediaPlaying(){
-        return mediaPlayer.isPlaying();
+        return mediaPlayer.isPlaying() || isDelaying;
     }
 
     /**
@@ -171,7 +171,6 @@ public class MediaHandler {
         String line = timeStamp + "," + signal + "," + String.valueOf(mediaLength) + "," +
                 String.valueOf(leftVolume) + "," + String.valueOf(rightVolume);
         try {
-            System.out.println("HELLO");
             logFileWriter.write(line);
             logFileWriter.newLine();
             logFileWriter.close();
@@ -208,6 +207,7 @@ public class MediaHandler {
      * "Recursively" called using MediaPlayed OnCompletion callback function
      */
     private void setNextTrack(){
+        System.out.println("NEXT TRACK");
         if(mediaQueue.size() == 0) {
             setMediaQueue();
         }

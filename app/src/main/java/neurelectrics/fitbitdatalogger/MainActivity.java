@@ -6,11 +6,12 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.media.MediaPlayer;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
-import android.provider.MediaStore;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,13 +24,18 @@ import android.widget.TextView;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -49,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     float targetVolume=1.0f;
     float volumeInc=(0.05f/200f);
     fitbitServer server;
+    savedDataServer fileServer;
     String fitbitStatus="";
     boolean isPlaying=false;
     int ZMAX_WRITE_INTERVAL=60*60; //write zmax data every minute
@@ -149,11 +156,13 @@ public class MainActivity extends AppCompatActivity {
         }
         Log.w("Httpd", "Web server initialized.");
 
-
-
-
-
-
+        fileServer = new savedDataServer();
+        try {
+            fileServer.start();
+        } catch(IOException ioe) {
+            Log.w("Httpd", "The FILE server could not start.");
+        }
+        Log.w("Httpd", "Web FILE server initialized.");
 
         Button stopButton = (Button) findViewById(R.id.stopButton);
         stopButton.setOnClickListener(new View.OnClickListener() {
@@ -190,9 +199,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
+        final Button downloadButton = (Button) findViewById(R.id.downloadButton);
+        downloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fileServer.startTransmit();
+                downloadButton.setEnabled(false);
+            }
+        });
+        downloadButton.setEnabled(false);
     }
-
 
     //stop the server when app is closed
     @Override
@@ -201,12 +217,21 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         if (server != null)
             server.stop();
+
+        if (fileServer != null)
+            fileServer.stop();
     }
 
 
 
     //fitbitServer handles getting data from the fitbit which sends it on port 8085
     private class fitbitServer extends NanoHTTPD {
+        /*
+        private boolean initiateDownloadPrevious = false;
+        private boolean downloadPrevious = false;
+        private boolean downloadAcknowledged = false;
+        private int downloadCount = 0;
+        */
         PrintWriter fitbitWriter;
         //MediaPlayer mp;
         MediaHandler md;
@@ -302,8 +327,8 @@ public class MainActivity extends AppCompatActivity {
                         targetVolume=1.0f;
                     }
                     md.setMediaVolume(targetVolume, targetVolume);
-                    if (md.isMediaPlaying()){
-                        md.pauseMedia();
+                    if (!md.isMediaPlaying()){
+                        md.startMedia();
                     }
                     /*
                     mp.setVolume(targetVolume,targetVolume);
@@ -320,26 +345,13 @@ public class MainActivity extends AppCompatActivity {
             return tmrStatus;
         }
 
-
         public Response serve(String uri, Method method,
                               Map<String, String> header,
                               Map<String, String> parameters,
                               Map<String, String> files) {
             Log.e("server","request");
-            String answer = "ok"; //required because the client will get confused if there is no response
             if (uri.indexOf("rawdata") > -1) { //recieved a data packet from the Fitbit, set the Fitbit status to good.
                 lastpacket=System.currentTimeMillis();
-                //check to see if stages are available
-                String staging="";
-                if (parameters.toString().indexOf("is3") > -1) { //yes they are
-                    String split=parameters.toString().split("( is3=1 )")[1];
-                    split=split.split(",")[0].replace(")\":","");
-                    staging=handleStaging(Float.parseFloat(split));
-                    Log.e("stage3",split);
-                }
-
-
-
                 runOnUiThread(new Runnable() {
 
                     @Override
@@ -349,6 +361,44 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
+                /*
+                //check to see if stages are available
+                if(downloadPrevious) {
+                    String message = parameters.toString();
+                    System.out.println(message);
+                    if (message.contains("DOWNLOAD_ACKNOWLEDGEMENT")) {
+                        System.out.println("1");
+                        downloadAcknowledged = true;
+                        return newFixedLengthResponse(Response.Status.OK, "confirm0", "");
+                    } else if (message.contains("EXIT_DOWNLOAD")) {
+                        downloadPrevious = false;
+                        return newFixedLengthResponse(Response.Status.OK, "exit", "");
+                    } else if (downloadAcknowledged) {
+                        System.out.println("2");
+                        //write parameters.toString() to datalog file
+                        downloadCount++;
+                        return newFixedLengthResponse(Response.Status.OK, "confirm" + String.valueOf(downloadCount), "");
+                    } else {
+                        System.out.println("3");
+                        return newFixedLengthResponse(Response.Status.OK, "waiting_for_acknowledgement", "");
+                    }
+                }
+                */
+                String staging="";
+                if (parameters.toString().indexOf("is3") > -1) { //yes they are
+                    String split=parameters.toString().split("( is3=1 )")[1];
+                    split=split.split(",")[0].replace(")\":","");
+                    staging=handleStaging(Float.parseFloat(split));
+                    Log.e("stage3",split);
+                }
+                /*
+                String staging="";
+                if (true) { //yes they are
+                    System.out.println("FORCING STAGING");
+                    staging=handleStaging(Float.parseFloat("1.0"));
+                    Log.e("stage3","1");
+                }
+                */
                 //Log.i("fitbit",parameters.toString());
                 String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
                 fitbitStatus = System.currentTimeMillis() + "," + fitbitParams[2] + "," + fitbitParams[4] + "," + fitbitParams[6] + "," + fitbitParams[8] + "," + fitbitParams[10] + "," + fitbitParams[12] + "," + fitbitParams[14]+","+fitbitParams[16]+","+fitbitParams[18]+","+fitbitParams[20]; //store just sensor data value, not keys
@@ -371,12 +421,212 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             // Log.i("server", parameters.toString());
-
+            /*
             //update the Fitbit status
+            if(initiateDownloadPrevious){
+                initiateDownloadPrevious = false;
+                downloadPrevious = true;
+                downloadCount = 0;
+                return newFixedLengthResponse(Response.Status.OK, "download", "");
+            }
+            else{
 
-            return newFixedLengthResponse(answer);
+            }
+             */
+            return newFixedLengthResponse(Response.Status.OK, "normal", "");
         }
     }
+
+    //Server for downloading datalog.txt data, used on port 8090
+    private class savedDataServer extends NanoHTTPD{
+        boolean beginTransfer = false;
+        boolean start = true;
+        List<String> inputs = new ArrayList<String>();
+        List<String> outputs = new ArrayList<String>();
+        int currentLine = 0;
+        List<String> lines = new ArrayList<>();
+
+        public savedDataServer() {
+            super(9000);
+        }
+
+        public Response serve(String uri, Method method,
+                              Map<String, String> header,
+                              Map<String, String> parameters,
+                              Map<String, String> files) {
+            String message = parameters.toString();
+            message = message.substring(6, message.indexOf(", NanoHttpd.QUERY_STRING="));
+            System.out.println("RECEIVED: " + message);
+            inputs.add(message);
+            /*
+            if(outputs.size() > 0){
+                return handleResponse(inputs.get(inputs.size()-1), outputs.get(outputs.size()-1));
+            }
+            else{
+                return handleResponse(inputs.get(inputs.size()-1), "");
+            }
+            */
+            return handleResponse();
+        }
+
+        private Response handleResponse(){
+            if(!beginTransfer){
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        ((Button) findViewById(R.id.downloadButton)).setEnabled(true);
+                    }
+                });
+                return buildResponse("PASS");
+            }
+            else{
+                System.out.println(getLastInput() + " -> " + getLastOutput());
+                if(getLastInput().startsWith("PASSED")){
+                    start = false;
+                    return buildResponse("INITIATE");
+                }
+                else if(getLastOutput().startsWith("INITIATE")){
+                    if(getLastInput().startsWith("SUCCESS")){
+                        return buildResponse("LINE_" + currentLine);
+                    }
+                    else{
+                        return buildResponse("INITIATE");
+                    }
+                }
+                else if(getLastOutput().startsWith("LINE")){
+                    if(!getLastInput().startsWith("LINE")){
+                        return buildResponse(getLastOutput());
+                    }
+                    LineInput lineInput = new LineInput(getLastInput());
+                    if(currentLine == lineInput.getLineNumber()){
+                        if(lineInput.getCommandType().equals("DATA")){
+                            lines.add(lineInput.getData());
+                            currentLine++;
+                            return buildResponse("LINE_" + currentLine);
+                        }
+                        else if(lineInput.getCommandType().equals("INIT")){
+                            return buildResponse("INITIATE");
+                        }
+                        else if(lineInput.getCommandType().equals("EXIT")){
+                            if(saveToFile()){
+                                return buildResponse("CLEAR");
+                            }
+                            else{
+                                return buildResponse("LINE_" + currentLine);
+                            }
+                        }
+                    } else{
+                        return buildResponse("LINE_" + currentLine);
+                    }
+
+                }
+                else if(getLastOutput().startsWith("CLEAR")) {
+                    if(getLastInput().startsWith("SUCCESS")){
+                        lines = new ArrayList<String>();
+                        outputs = new ArrayList<String>();
+                        inputs = new ArrayList<String>();
+                        currentLine = new Integer(0);
+                        beginTransfer = false;
+                        start = true;
+                        return buildResponse("PASS");
+                    }
+                    else{
+                        return buildResponse("CLEAR");
+                    }
+                }
+                return buildResponse("ERROR");
+            }
+        }
+
+        private boolean saveToFile(){
+            File storageDirectory = Environment.getExternalStorageDirectory();
+            String storageFileName = "SAVED_DATA_" + System.currentTimeMillis() + ".txt";
+            File storageFile = new File(storageDirectory, storageFileName);
+            try {
+                if(!storageFile.exists()) {
+                    storageFile.createNewFile();
+                }
+                BufferedWriter writer = new BufferedWriter(new FileWriter(storageFile, true));
+                for(String line: lines){
+                    writer.write(line + "\n");
+                }
+                writer.close();
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            }
+        }
+
+        private String getLastOutput(){
+            return outputs.get(outputs.size()-1);
+        }
+
+        private String getLastInput(){
+            return inputs.get(inputs.size()-1);
+        }
+
+        private Response buildResponse(String message){
+            outputs.add(message);
+            System.out.println(message);
+            return newFixedLengthResponse(Response.Status.OK, message,"");
+        }
+        /*
+        private Response sendAcknowledgement(){
+            currentLine = -1;
+            return newFixedLengthResponse(Response.Status.OK, "INITIATE_TRANSMIT", "");
+        }
+
+        private Response storeData(String line){
+            //Put the line in data storage
+            currentLine++;
+            return newFixedLengthResponse(Response.Status.OK, "CONFIRM:" + currentLine.toString(), "");
+        }
+        private Response exit(){
+            beginTransfer = false;
+            currentLine = null;
+            return newFixedLengthResponse(Response.Status.OK, "COMPLETED_EXIT", "");
+        }
+        */
+        public void startTransmit() {
+            beginTransfer = true;
+        }
+
+        private class LineInput{
+            private int LineNumber;
+            private String CommandType;
+            private String Data;
+            public LineInput(String line){
+                System.out.println("LINEINPUT");
+                System.out.println(line);
+                String[] broken = line.split("_");
+                for (String i:
+                     broken) {
+                    System.out.println(i);
+                }
+                LineNumber = Integer.parseInt(broken[1]);
+                CommandType = broken[2];
+                if(CommandType.equals("DATA")){
+                    Data = broken[3];
+                }
+            }
+
+            public String getData(){
+                return Data;
+            }
+
+            public String getCommandType(){
+                return CommandType;
+            }
+
+            public int getLineNumber() {
+                return LineNumber;
+            }
+        }
+
+    }
+
+
     //NOTE: TIS FUNCTION IS NOT CURRENTLY USED BECAUSE WE ARE NO LONGER USING THE ZMAX SENSOR
     //DataHandler receives zMax data and writes it to a file
     //Note--data is stored in UNSCALED form
