@@ -51,6 +51,8 @@ public class MediaHandler {
     private File logFile; // File object for the log file
     private File storageDirectory; // Directory in internal storage in which logFile is stored
     private BufferedWriter logFileWriter; // Writes to the log file
+    private List<String> mediaFilenameHistory = new ArrayList<String>();
+    private boolean everPlayed = false; //true if a sound has ever been played
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
@@ -79,6 +81,7 @@ public class MediaHandler {
      * Starts audio playback
      */
     public void startMedia(){
+        everPlayed = true;
         isDelaying = true;
         mediaPlayer.start();
     }
@@ -128,6 +131,18 @@ public class MediaHandler {
         } else{
             return "none";
         }
+    }
+
+    public int getCueCount(){
+        if(everPlayed) {
+            return mediaFilenameHistory.size();
+        } else{
+            return 0;
+        }
+    }
+
+    public float getVolume() {
+        return volume.first;
     }
 
     /**
@@ -220,7 +235,9 @@ public class MediaHandler {
         mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
         currentMediaID = CurrentTrack.second;
         mediaPlayer.setVolume(volume.first,volume.second);
-        writeToLogFile(mediaFileNames.get(currentMediaID), mediaPlayer.getDuration(), volume.first, volume.second);
+        String mediaFileCurrent = mediaFileNames.get(currentMediaID);
+        mediaFilenameHistory.add(mediaFileCurrent);
+        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {

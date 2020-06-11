@@ -5,8 +5,10 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
@@ -23,14 +25,21 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.nio.Buffer;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -42,6 +51,7 @@ import fi.iki.elonen.NanoHTTPD;
 public class MainActivity extends AppCompatActivity {
 
     //TMR control variables
+    static String USERID="USER1";
     float ONSET_CONFIDENCE=0.85f;
     float E_STOP=0.5f; //emergency stop cueing
     int ONSET_CONSEC=30;
@@ -72,6 +82,12 @@ public class MainActivity extends AppCompatActivity {
         byte d2b = (byte) data2;
         int val = ((d1b & 0xff) << 8) | (d2b & 0xff); //combine two bytes to get an int
         return val;
+    }
+
+    public boolean isPluggedIn() {
+        Intent intent = this.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+        return plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
     }
 
     @Override
@@ -362,7 +378,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
                 /*
-                //check to see if stages are available
                 if(downloadPrevious) {
                     String message = parameters.toString();
                     System.out.println(message);
@@ -385,10 +400,20 @@ public class MainActivity extends AppCompatActivity {
                 }
                 */
                 String staging="";
+                String is3current = "unset";
+                //check to see if stages are available
                 if (parameters.toString().indexOf("is3") > -1) { //yes they are
                     String split=parameters.toString().split("( is3=1 )")[1];
                     split=split.split(",")[0].replace(")\":","");
-                    staging=handleStaging(Float.parseFloat(split));
+                    float prob;
+                    try{
+                        prob = Float.parseFloat(split);
+                    }
+                    catch(NumberFormatException e){
+                        prob = 0;
+                    }
+                    is3current = String.valueOf(prob);
+                    staging=handleStaging(prob);
                     Log.e("stage3",split);
                 }
                 /*
@@ -402,7 +427,8 @@ public class MainActivity extends AppCompatActivity {
                 //Log.i("fitbit",parameters.toString());
                 String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
                 fitbitStatus = System.currentTimeMillis() + "," + fitbitParams[2] + "," + fitbitParams[4] + "," + fitbitParams[6] + "," + fitbitParams[8] + "," + fitbitParams[10] + "," + fitbitParams[12] + "," + fitbitParams[14]+","+fitbitParams[16]+","+fitbitParams[18]+","+fitbitParams[20]; //store just sensor data value, not keys
-                fitbitStatus=parameters.toString().split("data=\\{")[1];
+                String hrCurrent = (fitbitParams[1]); //HEART RATE
+                String batteryCurrent = (fitbitParams[19].split("STAGE")[0].replace("}", "")); //BATTERY
                 //Log.e("fitbit",fitbitStatus);
                 fitbitBuffer = fitbitBuffer + fitbitStatus + ","+staging+"\n";
                 fitbitCount++;
@@ -419,6 +445,52 @@ public class MainActivity extends AppCompatActivity {
                         Log.e("Fitbitserver", "Error writing to file");
                     }
                 }
+
+                String is3average;
+                if(probBuffer.size() > 0){ is3average = String.valueOf(average(probBuffer)); }
+                else { is3average = "unset"; }
+
+                String mediaPlayingCurrently = String.valueOf(md.isMediaPlaying());
+                String cueCountCurrently = String.valueOf(md.getCueCount());
+
+                String volumeCurrently = String.valueOf(md.getVolume());
+
+                String isPhonePluggedInCurrently = String.valueOf(isPluggedIn());
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                String isScreenOnCurrently = String.valueOf(pm.isInteractive());
+
+                //REMOTE TELEMETRY FUNCTIONALITY
+                    //Heart rate - hrCurrent
+                    //Current probability of stage 3 - is3current
+                    //Averaged probability of stage 3 - is3average
+                    //Is TMR running or not - mediaPlayingCurrently
+                    //Current volume - volumeCurrently
+                    //FB battery level - batteryCurrent
+                    //Phone plugged in - isPhonePluggedInCurrently
+                    //Phone screen on - isScreenOnCurrently
+                JSONObject remoteTeleData = new JSONObject();
+                try {
+                    remoteTeleData.put("hr", hrCurrent);
+                    remoteTeleData.put("is3", is3current);
+                    remoteTeleData.put("is3avg", is3average);
+                    remoteTeleData.put("TMRon", mediaPlayingCurrently);
+                    remoteTeleData.put("vlm", volumeCurrently);
+                    remoteTeleData.put("bat", batteryCurrent);
+                    remoteTeleData.put("plugin", isPhonePluggedInCurrently);
+                    remoteTeleData.put("scrnOn", isScreenOnCurrently);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    String urlString = "http://biostream-1024.appspot.com/sendps?user=" + MainActivity.USERID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                    //System.out.println(urlString);
+                    URL url = new URL(urlString);
+                    url.openConnection();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+
             }
             // Log.i("server", parameters.toString());
             /*
