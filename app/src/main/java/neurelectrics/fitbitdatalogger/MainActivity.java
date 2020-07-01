@@ -2,8 +2,10 @@ package neurelectrics.fitbitdatalogger;
 
 import android.Manifest;
 import android.app.AlarmManager;
+import android.app.AlertDialog;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
@@ -17,19 +19,23 @@ import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -51,8 +57,11 @@ import fi.iki.elonen.NanoHTTPD;
 public class MainActivity extends AppCompatActivity {
 
     //TMR control variables
-    static String USERID="USER1";
+    private String USER_ID;
+    private String DEFAULT_USER_ID = "DEFAULT";
+    private String USER_ID_FILE_NAME = "userID.txt";
     float ONSET_CONFIDENCE=0.85f;
+    int BUFFER_SIZE = 240;
     float E_STOP=0.5f; //emergency stop cueing
     int ONSET_CONSEC=30;
     int OFFSET_CONFIDENCE=75;
@@ -109,6 +118,70 @@ public class MainActivity extends AppCompatActivity {
         Log.e("Datacollector","Turn screen on");
     }*/
 
+
+    private void getUserID(){
+        File userIDFile = new File(Environment.getExternalStorageDirectory(), USER_ID_FILE_NAME);
+        try {
+            if(!userIDFile.exists()) {
+                userIDFile.createNewFile();
+                setUserID(DEFAULT_USER_ID);
+                USER_ID = DEFAULT_USER_ID;
+            }
+            else{
+                BufferedReader fileReader = new BufferedReader(new FileReader(userIDFile));
+                USER_ID = fileReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Button userIDButton = (Button)findViewById(R.id.USERID);
+        userIDButton.setText(new String("SET USER ID: " + USER_ID));
+    }
+
+    private void setUserID(String newID){
+        setUserID(newID, new File(Environment.getExternalStorageDirectory(), USER_ID_FILE_NAME));
+    }
+
+    private void setUserID(String newID, File userIDFile) {
+        try {
+            BufferedWriter fileWriter = new BufferedWriter(new FileWriter(userIDFile, false));
+            fileWriter.write(newID);
+            fileWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        getUserID();
+    }
+
+    private void alertSetNewID(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Set New ID:");
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setText(USER_ID);
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String userID = input.getText().toString();
+                userID = userID.toUpperCase();
+                userID = userID.replaceAll(" ", "_");
+                if(userID.length() == 0){
+                    userID = DEFAULT_USER_ID;
+                }
+                USER_ID = userID;
+                setUserID(USER_ID);
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+        builder.show();
+    }
 
     void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability.
         final Handler wakeuptimer = new Handler();
@@ -224,6 +297,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         downloadButton.setEnabled(false);
+        getUserID();
+
+        final Button userIDButton = (Button)findViewById(R.id.USERID);
+        userIDButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                alertSetNewID();
+            }
+        });
     }
 
     //stop the server when app is closed
@@ -292,7 +374,7 @@ public class MainActivity extends AppCompatActivity {
         String handleStaging(float prob) {
             String tmrStatus="0,";
             probBuffer.add(prob);
-            if (probBuffer.size() > 240) {
+            if (probBuffer.size() > BUFFER_SIZE) {
                 probBuffer.remove(0);
             }
             float avgProb=average(probBuffer);
@@ -301,6 +383,7 @@ public class MainActivity extends AppCompatActivity {
                 above_thresh=1;
             }
             else {
+                above_thresh=0;
                 above_thresh=0;
                 /*
                 if (mp.isPlaying()) {
@@ -482,7 +565,7 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
                 try {
-                    String urlString = "http://biostream-1024.appspot.com/sendps?user=" + MainActivity.USERID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                    String urlString = "http://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
                     //System.out.println(urlString);
                     URL url = new URL(urlString);
                     url.openConnection();
@@ -509,7 +592,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    //Server for downloading datalog.txt data, used on port 8090
+    //Server for downloading datalog.txt data, used on port 9000
     private class savedDataServer extends NanoHTTPD{
         boolean beginTransfer = false;
         boolean start = true;

@@ -33,6 +33,12 @@
         android:layout_height="wrap_content"
         android:text="Test sound" />
 
+    <Button
+        android:id="@+id/USERID"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Set USER ID" />
+
     <TextView
         android:id="@+id/fConnectionStatus"
         android:layout_width="match_parent"
