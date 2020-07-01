@@ -38,6 +38,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
@@ -183,6 +184,49 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    private void getUserSettings(){
+        new Thread(new Runnable() {
+            public void run() {
+                //LINK TO SETTINGS PER USER:
+                String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
+                List<String[]> settingsData = new ArrayList<>();
+                try {
+                    URL url = new URL(settingsDataLink);
+                    url.openStream();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+                    String currentLine = null;
+                    while((currentLine = reader.readLine()) != null){
+                        settingsData.add(currentLine.replaceAll(" ", "").split(","));
+                    }
+                    reader.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                boolean hit = false;
+                for(String[] line: settingsData){
+                    if(line[0].equals(USER_ID)){
+                        hit = true;
+                        BACKOFF_TIME = Integer.parseInt(line[1]);
+                        MAX_STIM = Integer.parseInt(line[2]);
+                        ONSET_CONFIDENCE = Float.parseFloat(line[3]);
+                        E_STOP = Float.parseFloat(line[4]);
+                        BUFFER_SIZE = Integer.parseInt(line[5]);
+                    }
+                }
+                if(!hit){
+                    System.out.println("USING DEFAULT SETTINGS!");
+                }
+                System.out.println("CURRENT SETTINGS:\n------------------------------");
+                System.out.println("BACKOFF_TIME: " + BACKOFF_TIME);
+                System.out.println("MAX_STIM: " + MAX_STIM);
+                System.out.println("ONSET_CONFIDENCE: " + ONSET_CONFIDENCE);
+                System.out.println("E_STOP: " + E_STOP);
+                System.out.println("BUFFER_SIZE: " + BUFFER_SIZE);
+
+            }
+        }).start();
+    }
+
     void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability.
         final Handler wakeuptimer = new Handler();
         Runnable runnableCode = new Runnable() {
@@ -306,6 +350,8 @@ public class MainActivity extends AppCompatActivity {
                 alertSetNewID();
             }
         });
+
+        getUserSettings();
     }
 
     //stop the server when app is closed
