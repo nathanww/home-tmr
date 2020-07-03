@@ -11,11 +11,9 @@ import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
-import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -40,18 +38,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.Buffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -61,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
     private String USER_ID;
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
+    private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
     float ONSET_CONFIDENCE=0.85f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.5f; //emergency stop cueing
@@ -119,6 +114,49 @@ public class MainActivity extends AppCompatActivity {
         Log.e("Datacollector","Turn screen on");
     }*/
 
+    private void setSettingsFromDefault(){
+        File settingsFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_SETTINGS_FILE_NAME);
+        try {
+            if(!settingsFile.exists()) {
+                System.out.println("NO LOCAL BACKUP. RESORTING TO DEFAULT...");
+                saveDefaultSettingsFile(settingsFile);
+            } else{
+                BufferedReader fileReader = new BufferedReader(new FileReader(settingsFile));
+                String[] settingsData = fileReader.readLine().split(",");
+                if(settingsData[0].equals(USER_ID)){
+                    System.out.println("USING SETTINGS FROM LAST RUN ON LOCAL BACKUP...");
+                    BACKOFF_TIME = Integer.parseInt(settingsData[1]);
+                    MAX_STIM = Integer.parseInt(settingsData[2]);
+                    ONSET_CONFIDENCE = Float.parseFloat(settingsData[3]);
+                    E_STOP = Float.parseFloat(settingsData[4]);
+                    BUFFER_SIZE = Integer.parseInt(settingsData[5]);
+                } else{
+                    System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
+                    saveDefaultSettingsFile(settingsFile);
+                }
+            }
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    private void saveDefaultSettingsFile(){
+        File settingsFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_SETTINGS_FILE_NAME);
+        saveDefaultSettingsFile(settingsFile);
+    }
+
+    private void saveDefaultSettingsFile(File settingsFile){
+        try {
+            if(!settingsFile.exists()) {
+                settingsFile.createNewFile();
+            }
+            BufferedWriter fileWriter = new BufferedWriter(new FileWriter(settingsFile, false));
+            fileWriter.write(USER_ID + "," + BACKOFF_TIME + "," + MAX_STIM + "," + ONSET_CONFIDENCE + "," + E_STOP + "," + BUFFER_SIZE);
+            fileWriter.close();
+        } catch(IOException e){
+            e.printStackTrace();
+        }
+    }
 
     private void getUserID(){
         File userIDFile = new File(Environment.getExternalStorageDirectory(), USER_ID_FILE_NAME);
@@ -173,6 +211,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 USER_ID = userID;
                 setUserID(USER_ID);
+                getUserSettings();
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -214,7 +253,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 if(!hit){
-                    System.out.println("USING DEFAULT SETTINGS!");
+                    System.out.println("COULD NOT CONNECT TO SERVER OR FIND USERNAME. LOOKING FOR LOCAL BACKUP...");
+                    setSettingsFromDefault();
+                } else{ //if(hit)
+                    saveDefaultSettingsFile();
                 }
                 System.out.println("CURRENT SETTINGS:\n------------------------------");
                 System.out.println("BACKOFF_TIME: " + BACKOFF_TIME);
