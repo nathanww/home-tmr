@@ -8,7 +8,11 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Environment;
@@ -23,8 +27,11 @@ import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.json.JSONException;
@@ -72,6 +79,12 @@ public class MainActivity extends AppCompatActivity {
     fitbitServer server;
     savedDataServer fileServer;
     String fitbitStatus="";
+    ToggleButton tmrStateButton;
+    MediaPlayer whiteNoise;
+    Float whiteNoiseVolume = 1.0f;
+    TextView volumeText;
+    SeekBar volumeBar;
+    SharedPreferences volumePreferences;
     boolean isPlaying=false;
     int ZMAX_WRITE_INTERVAL=60*60; //write zmax data every minute
     String zMaxBuffer="";
@@ -393,6 +406,54 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
+        whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
+        int displayVolume = (int) (whiteNoiseVolume * 100);
+
+        volumeBar = (SeekBar) findViewById(R.id.volumeBar);
+        volumeBar.setProgress(displayVolume);
+        volumeText = (TextView) findViewById(R.id.volumeText);
+        volumeText.setText(String.valueOf(displayVolume));
+        volumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                volumeText.setText(String.valueOf(progress));
+                whiteNoiseVolume = new Float(progress / 100.0);
+                whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                SharedPreferences.Editor editor = volumePreferences.edit();
+                editor.putFloat("volume", whiteNoiseVolume);
+                editor.commit();
+            }
+        });
+
+        whiteNoise = MediaPlayer.create(this, R.raw.whitenoise);
+        whiteNoise.setLooping(true);
+        whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+        tmrStateButton = (ToggleButton) findViewById(R.id.tmrState);
+        tmrStateButton.setTextColor(Color.parseColor("#FFFFFF"));
+        tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+        tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    whiteNoise.start();
+                    tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                } else {
+                    whiteNoise.pause();
+                    tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+                    stim_seconds = 0;
+                }
+            }
+        });
+
         getUserSettings();
     }
 
@@ -490,7 +551,7 @@ public class MainActivity extends AppCompatActivity {
                     if(targetVolume < 0.1){
                         targetVolume=0;
                     }
-                    md.setMediaVolume(targetVolume, targetVolume);
+                    md.setMediaVolume(whiteNoiseVolume, whiteNoiseVolume);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
             }
@@ -506,14 +567,14 @@ public class MainActivity extends AppCompatActivity {
                 */
             }
             else {
-                if (above_thresh >0 ) { //we are stably in stage, start playing the media
+                if (above_thresh > 0 && tmrStateButton.isChecked()) { //we are stably in stage, start playing the media
                     tmrStatus = "1,";
                     stim_seconds++;
                     targetVolume=targetVolume+volumeInc;
                     if (targetVolume > 1) {
                         targetVolume=1.0f;
                     }
-                    md.setMediaVolume(targetVolume, targetVolume);
+                    md.setMediaVolume(whiteNoiseVolume, whiteNoiseVolume);
                     if (!md.isMediaPlaying()){
                         md.startMedia();
                     }
