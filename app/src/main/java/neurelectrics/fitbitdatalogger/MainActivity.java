@@ -419,8 +419,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
         volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
-        whiteNoiseVolume = volumePreferences.getFloat("volume", whiteNoiseVolume);
-        cueNoiseOffset = volumePreferences.getFloat("offset", whiteNoiseVolume);
+        whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
+        cueNoiseOffset = volumePreferences.getFloat("offset", cueNoiseOffset);
         saveCueNoiseOffset();
         int displayVolume = (int) (whiteNoiseVolume * 100);
 
@@ -482,7 +482,6 @@ public class MainActivity extends AppCompatActivity {
         if (fileServer != null)
             fileServer.stop();
     }
-
 
 
 
