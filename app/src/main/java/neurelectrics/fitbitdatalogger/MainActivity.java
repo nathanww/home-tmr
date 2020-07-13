@@ -63,13 +63,12 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
-    float ONSET_CONFIDENCE=0.85f;
+    float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
-    float E_STOP=0.5f; //emergency stop cueing
-    int ONSET_CONSEC=30;
-    int OFFSET_CONFIDENCE=75;
+    float E_STOP=0.3f; //emergency stop cueing
+
     int BACKOFF_TIME=60000*5;
-    int MAX_STIM=1000;
+    int MAX_STIM=2000;
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
