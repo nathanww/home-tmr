@@ -82,6 +82,7 @@ public class MainActivity extends AppCompatActivity {
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
     Float whiteNoiseVolume = 1.0f;
+    Float cueNoiseOffset = 0.2f;
     TextView volumeText;
     SeekBar volumeBar;
     SharedPreferences volumePreferences;
@@ -234,6 +235,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         builder.show();
+    }
+
+    private void saveCueNoiseOffset(){
+        SharedPreferences.Editor editor = volumePreferences.edit();
+        editor.putFloat("offset", cueNoiseOffset);
+        editor.commit();
+    }
+
+    private void incrementCueNoiseOffset(float increment){
+        cueNoiseOffset += increment;
+        saveCueNoiseOffset();
     }
 
     private void getUserSettings(){
@@ -408,6 +420,8 @@ public class MainActivity extends AppCompatActivity {
 
         volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
         whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
+        cueNoiseOffset = volumePreferences.getFloat("offset", cueNoiseOffset);
+        saveCueNoiseOffset();
         int displayVolume = (int) (whiteNoiseVolume * 100);
 
         volumeBar = (SeekBar) findViewById(R.id.volumeBar);
@@ -547,11 +561,19 @@ public class MainActivity extends AppCompatActivity {
                  */
                 if (md.isMediaPlaying()){
                     md.pauseMedia();
+                    /*
                     targetVolume=targetVolume-0.1f;
                     if(targetVolume < 0.1){
                         targetVolume=0;
                     }
-                    md.setMediaVolume(whiteNoiseVolume, whiteNoiseVolume);
+                    */
+                    incrementCueNoiseOffset(-0.1f);
+                    if(whiteNoiseVolume - cueNoiseOffset < 0.1f){
+                        cueNoiseOffset = whiteNoiseVolume * -1;
+                        saveCueNoiseOffset();
+                    }
+                    md.setMediaVolume(whiteNoiseVolume - cueNoiseOffset,
+                            whiteNoiseVolume - cueNoiseOffset);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
             }
@@ -570,11 +592,19 @@ public class MainActivity extends AppCompatActivity {
                 if (above_thresh > 0 && tmrStateButton.isChecked()) { //we are stably in stage, start playing the media
                     tmrStatus = "1,";
                     stim_seconds++;
+                    /*
                     targetVolume=targetVolume+volumeInc;
                     if (targetVolume > 1) {
                         targetVolume=1.0f;
                     }
-                    md.setMediaVolume(whiteNoiseVolume, whiteNoiseVolume);
+                     */
+                    incrementCueNoiseOffset(volumeInc);
+                    if(whiteNoiseVolume - cueNoiseOffset > 1.0f){
+                        cueNoiseOffset = 1.0f - whiteNoiseVolume;
+                        saveCueNoiseOffset();
+                    }
+                    md.setMediaVolume(whiteNoiseVolume - cueNoiseOffset,
+                            whiteNoiseVolume - cueNoiseOffset);
                     if (!md.isMediaPlaying()){
                         md.startMedia();
                     }
