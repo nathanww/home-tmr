@@ -627,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
                               Map<String, String> header,
                               Map<String, String> parameters,
                               Map<String, String> files) {
-            Log.e("server","request");
+            Log.e("fitbitserver","request");
             if (uri.indexOf("rawdata") > -1) { //recieved a data packet from the Fitbit, set the Fitbit status to good.
                 lastpacket=System.currentTimeMillis();
                 runOnUiThread(new Runnable() {
@@ -686,9 +686,11 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("stage3","1");
                 }
                 */
-                //Log.i("fitbit",parameters.toString());
+
                 String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
-                fitbitStatus = System.currentTimeMillis() + "," + fitbitParams[2] + "," + fitbitParams[4] + "," + fitbitParams[6] + "," + fitbitParams[8] + "," + fitbitParams[10] + "," + fitbitParams[12] + "," + fitbitParams[14]+","+fitbitParams[16]+","+fitbitParams[18]+","+fitbitParams[20]; //store just sensor data value, not keys
+
+                fitbitStatus=parameters.toString().split("data=\\{")[1];
+
                 String hrCurrent = (fitbitParams[1]); //HEART RATE
                 String batteryCurrent = (fitbitParams[19].split("STAGE")[0].replace("}", "")); //BATTERY
                 //Log.e("fitbit",fitbitStatus);
