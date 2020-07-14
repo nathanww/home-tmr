@@ -66,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.3f; //emergency stop cueing
-
     int BACKOFF_TIME=60000*5;
     int MAX_STIM=2000;
     int above_thresh=0;
@@ -81,7 +80,7 @@ public class MainActivity extends AppCompatActivity {
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
     Float whiteNoiseVolume = 1.0f;
-    Float cueNoiseOffset = 0.2f;
+    Float cueNoise;
     TextView volumeText;
     SeekBar volumeBar;
     SharedPreferences volumePreferences;
@@ -234,17 +233,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         builder.show();
-    }
-
-    private void saveCueNoiseOffset(){
-        SharedPreferences.Editor editor = volumePreferences.edit();
-        editor.putFloat("offset", cueNoiseOffset);
-        editor.commit();
-    }
-
-    private void incrementCueNoiseOffset(float increment){
-        cueNoiseOffset += increment;
-        saveCueNoiseOffset();
     }
 
     private void getUserSettings(){
@@ -419,11 +407,9 @@ public class MainActivity extends AppCompatActivity {
 
         volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
         whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
-        cueNoiseOffset = volumePreferences.getFloat("offset", cueNoiseOffset);
-        saveCueNoiseOffset();
-        int displayVolume = (int) (whiteNoiseVolume * 100);
-
+        cueNoise = whiteNoiseVolume;
         volumeBar = (SeekBar) findViewById(R.id.volumeBar);
+        int displayVolume = (int) (whiteNoiseVolume * volumeBar.getMax());
         volumeBar.setProgress(displayVolume);
         volumeText = (TextView) findViewById(R.id.volumeText);
         volumeText.setText(String.valueOf(displayVolume));
@@ -431,7 +417,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
-                whiteNoiseVolume = new Float(progress / 100.0);
+                whiteNoiseVolume = new Float(progress / ((float) volumeBar.getMax()));
+                cueNoise = whiteNoiseVolume;
+                md.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
             }
 
@@ -457,12 +445,28 @@ public class MainActivity extends AppCompatActivity {
         tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    whiteNoise.start();
-                    tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                    if(System.currentTimeMillis() - lastpacket < 10000) {
+                        whiteNoise.start();
+                        tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                    } else{
+                        AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                        alertDialog.setTitle("Connection Error");
+                        alertDialog.setMessage("Fitbit is not connected - TMR cannot start.");
+                        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                        alertDialog.show();
+                        tmrStateButton.setChecked(false);
+                    }
                 } else {
                     whiteNoise.pause();
                     tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                     stim_seconds = 0;
+                    cueNoise = whiteNoiseVolume;
+                    md.setMediaVolume(cueNoise, cueNoise);
                 }
             }
         });
@@ -566,13 +570,11 @@ public class MainActivity extends AppCompatActivity {
                         targetVolume=0;
                     }
                     */
-                    incrementCueNoiseOffset(-0.1f);
-                    if(whiteNoiseVolume - cueNoiseOffset < 0.1f){
-                        cueNoiseOffset = whiteNoiseVolume * -1;
-                        saveCueNoiseOffset();
+                    cueNoise -= 0.1f;
+                    if(cueNoise < 0.1f){
+                        cueNoise = 0.0f;
                     }
-                    md.setMediaVolume(whiteNoiseVolume - cueNoiseOffset,
-                            whiteNoiseVolume - cueNoiseOffset);
+                    md.setMediaVolume(cueNoise, cueNoise);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
             }
@@ -597,13 +599,11 @@ public class MainActivity extends AppCompatActivity {
                         targetVolume=1.0f;
                     }
                      */
-                    incrementCueNoiseOffset(volumeInc);
-                    if(whiteNoiseVolume - cueNoiseOffset > 1.0f){
-                        cueNoiseOffset = 1.0f - whiteNoiseVolume;
-                        saveCueNoiseOffset();
+                    cueNoise += volumeInc;
+                    if(cueNoise > 1.0f){
+                        cueNoise = 1.0f;
                     }
-                    md.setMediaVolume(whiteNoiseVolume - cueNoiseOffset,
-                            whiteNoiseVolume - cueNoiseOffset);
+                    md.setMediaVolume(cueNoise, cueNoise);
                     if (!md.isMediaPlaying()){
                         md.startMedia();
                     }
@@ -805,6 +805,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private Response handleResponse(){
+            /*
+            DOWNLOAD BUTTON TEXT COLOR:
+                - RED: INITIATING TRANSFER
+                - ORANGE: SUCCESSFUL INITIATION, STARTING LINE REQUESTS
+                - YELLOW: SUCCESSFUL LINE REQUEST, COMPLETING LINE REQUESTS
+                - YELLOWGREEN: SUCCESSFUL LINE REQUESTS TO END OF FILE, REQUESTING CLEAR FILE
+                - GREEN: FILE CLEARED, PROCESS COMPLETED
+             */
             if(!beginTransfer){
                 runOnUiThread(new Runnable() {
                     @Override
@@ -818,10 +826,12 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println(getLastInput() + " -> " + getLastOutput());
                 if(getLastInput().startsWith("PASSED")){
                     start = false;
+                    ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FF0000")); //red
                     return buildResponse("INITIATE");
                 }
                 else if(getLastOutput().startsWith("INITIATE")){
                     if(getLastInput().startsWith("SUCCESS")){
+                        ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FFA500")); //orange
                         return buildResponse("LINE_" + currentLine);
                     }
                     else{
@@ -835,6 +845,7 @@ public class MainActivity extends AppCompatActivity {
                     LineInput lineInput = new LineInput(getLastInput());
                     if(currentLine == lineInput.getLineNumber()){
                         if(lineInput.getCommandType().equals("DATA")){
+                            ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FFFF00")); //yellow
                             lines.add(lineInput.getData());
                             currentLine++;
                             return buildResponse("LINE_" + currentLine);
@@ -844,6 +855,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else if(lineInput.getCommandType().equals("EXIT")){
                             if(saveToFile()){
+                                ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#9ACD32")); //yellowgreen
                                 return buildResponse("CLEAR");
                             }
                             else{
@@ -857,6 +869,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else if(getLastOutput().startsWith("CLEAR")) {
                     if(getLastInput().startsWith("SUCCESS")){
+                        ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#008000")); //green
                         lines = new ArrayList<String>();
                         outputs = new ArrayList<String>();
                         inputs = new ArrayList<String>();
