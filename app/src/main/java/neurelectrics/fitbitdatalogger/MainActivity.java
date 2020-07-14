@@ -66,8 +66,9 @@ public class MainActivity extends AppCompatActivity {
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.3f; //emergency stop cueing
-    int BACKOFF_TIME=60000*5;
+    int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
+    float CUE_NOISE_OFFSET=0.1f; //how much louder is the cue than the white noise
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
@@ -408,7 +409,7 @@ public class MainActivity extends AppCompatActivity {
 
         volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
         whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
-        cueNoise = whiteNoiseVolume;
+        cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
         volumeBar = (SeekBar) findViewById(R.id.volumeBar);
         int displayVolume = (int) (whiteNoiseVolume * volumeBar.getMax());
         volumeBar.setProgress(displayVolume);
@@ -419,7 +420,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
                 whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
-                cueNoise = whiteNoiseVolume;
+                cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                 md.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
             }
@@ -466,7 +467,7 @@ public class MainActivity extends AppCompatActivity {
                     whiteNoise.pause();
                     tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                     stim_seconds = 0;
-                    cueNoise = whiteNoiseVolume;
+                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                     md.setMediaVolume(cueNoise, cueNoise);
                 }
             }
