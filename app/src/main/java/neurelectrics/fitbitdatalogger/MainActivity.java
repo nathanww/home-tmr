@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     String fitbitStatus="";
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
-    double maxNoise = 0.5;
+    double maxNoise = 0.25;
     Float whiteNoiseVolume = (1.0f * (float) maxNoise);
     Float cueNoise;
     TextView volumeText;
