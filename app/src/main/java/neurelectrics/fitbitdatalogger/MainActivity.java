@@ -79,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
     String fitbitStatus="";
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
-    Float whiteNoiseVolume = 1.0f;
+    double maxNoise = 0.5;
+    Float whiteNoiseVolume = (1.0f * (float) maxNoise);
     Float cueNoise;
     TextView volumeText;
     SeekBar volumeBar;
@@ -417,7 +418,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
-                whiteNoiseVolume = new Float(progress / ((float) volumeBar.getMax()));
+                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
                 cueNoise = whiteNoiseVolume;
                 md.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
