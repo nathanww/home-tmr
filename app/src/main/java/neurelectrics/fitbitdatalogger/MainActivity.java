@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
     float E_STOP=0.3f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
-    float CUE_NOISE_OFFSET=0.1f; //how much louder is the cue than the white noise
+    float CUE_NOISE_OFFSET=0.4f; //how much louder is the cue than the white noise
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
