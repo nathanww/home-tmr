@@ -75,6 +75,8 @@ public class MainActivity extends AppCompatActivity {
     double lastpacket=0;
     float targetVolume=1.0f;
     float volumeInc=(0.05f/200f);
+
+
     fitbitServer server;
     savedDataServer fileServer;
     String fitbitStatus="";
@@ -581,7 +583,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM) {
+            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM ||  !tmrStateButton.isChecked()) {
                 if (md.isMediaPlaying()){
                     md.pauseMedia();
                 }
