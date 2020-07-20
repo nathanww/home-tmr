@@ -309,6 +309,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final Context cont = this;
+        Log.i("fitbit","oncreate was called");
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         while (check != PackageManager.PERMISSION_GRANTED) {
@@ -517,7 +518,8 @@ public class MainActivity extends AppCompatActivity {
             final int delay = 15000; //milliseconds
             fitbitWakeup.postDelayed(new Runnable(){
                 public void run(){
-                    if (System.currentTimeMillis() > lastpacket+10000) {
+                    if (System.currentTimeMillis() > lastpacket+10000) { //no data from the fitbit
+
                         if (md.isMediaPlaying()){
                             md.pauseMedia();
                         }
@@ -622,7 +624,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             //tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+String.valueOf(targetVolume)+","+md.getCurrentMedia();
-            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(targetVolume);
+            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(cueNoise);
             return tmrStatus;
         }
 
