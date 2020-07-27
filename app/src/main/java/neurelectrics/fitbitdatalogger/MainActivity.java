@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -285,25 +286,47 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability.
+    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability. Also checks the connection status and tries to reset thje connection if ti appears broken
         final Handler wakeuptimer = new Handler();
         Runnable runnableCode = new Runnable() {
             @Override
             public void run() {
-                int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                if (hour >= 21 || hour < 7) { //only run during the recording period; prevents accidetnal button presses.
-                    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-                    PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
-                    powerOn.acquire();
-                    powerOn.release();
-                    Log.e("Datacollector", "Turn screen on");
-                    wakeuptimer.postDelayed(this, 60000);
+                PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
+                powerOn.acquire();
+                powerOn.release();
+                Log.e("Datacollector", "Turn screen on");
+                //check connection status and reset if needed
+                if (System.currentTimeMillis() - lastpacket > 10000) { //last Fitbit data was received more than 10 seconds ago
+                    fixConnection();
                 }
+
+                wakeuptimer.postDelayed(this, 60000);
+
             }
         };
 // Start the initial runnable task by posting through the handler
         wakeuptimer.post(runnableCode);
 
+    }
+
+
+
+    private void fixConnection() {
+        //Toggle Bluetooth on and off and start the Fitbit app inb order to fix connection issues
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.disable();
+            mBluetoothAdapter.enable();
+        }
+        else {
+            mBluetoothAdapter.enable();
+        }
+        // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+        if (launchIntent != null) {
+            startActivity(launchIntent);//null pointer check in case package name was not found
+        }
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -454,13 +477,16 @@ public class MainActivity extends AppCompatActivity {
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
                     } else{
+
+                        //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - TMR cannot start.");
+                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
+                                        fixConnection();
                                     }
                                 });
                         alertDialog.show();
