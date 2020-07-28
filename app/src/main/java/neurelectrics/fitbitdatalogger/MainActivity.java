@@ -315,13 +315,14 @@ public class MainActivity extends AppCompatActivity {
     private void fixConnection() {
         //Toggle Bluetooth on and off and start the Fitbit app inb order to fix connection issues
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        /*
         if (mBluetoothAdapter.isEnabled()) {
             mBluetoothAdapter.disable();
             mBluetoothAdapter.enable();
         }
         else {
             mBluetoothAdapter.enable();
-        }
+        }*/
         // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
         Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
         if (launchIntent != null) {
