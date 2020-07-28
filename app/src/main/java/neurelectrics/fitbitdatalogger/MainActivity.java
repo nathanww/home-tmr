@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -66,20 +67,23 @@ public class MainActivity extends AppCompatActivity {
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.3f; //emergency stop cueing
-    int BACKOFF_TIME=60000*5;
+    int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
+    float CUE_NOISE_OFFSET=0.4f; //how much louder is the cue than the white noise
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
     double lastpacket=0;
     float targetVolume=1.0f;
     float volumeInc=(0.05f/200f);
+
+
     fitbitServer server;
     savedDataServer fileServer;
     String fitbitStatus="";
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
-    double maxNoise = 0.5;
+    double maxNoise = 0.25;
     Float whiteNoiseVolume = (1.0f * (float) maxNoise);
     Float cueNoise;
     TextView volumeText;
@@ -263,6 +267,18 @@ public class MainActivity extends AppCompatActivity {
                         ONSET_CONFIDENCE = Float.parseFloat(line[3]);
                         E_STOP = Float.parseFloat(line[4]);
                         BUFFER_SIZE = Integer.parseInt(line[5]);
+                        if(line.length >= 7){
+                            if(line[6].contains("FILES")){
+                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
+                                overrideHandler.readFiles();
+                                final float volume = server.md.getVolume();
+                                overrideHandler.setMediaVolume(volume, volume);
+                                if(server.md.isMediaPlaying()){
+                                    overrideHandler.startMedia();
+                                }
+                                server.md = overrideHandler;
+                            }
+                        }
                     }
                 }
                 if(!hit){
@@ -282,30 +298,54 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability.
+    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability. Also checks the connection status and tries to reset thje connection if ti appears broken
         final Handler wakeuptimer = new Handler();
         Runnable runnableCode = new Runnable() {
             @Override
             public void run() {
-                int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                if (hour >= 21 || hour < 7) { //only run during the recording period; prevents accidetnal button presses.
-                    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-                    PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
-                    powerOn.acquire();
-                    powerOn.release();
-                    Log.e("Datacollector", "Turn screen on");
-                    wakeuptimer.postDelayed(this, 60000);
+                PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
+                powerOn.acquire();
+                powerOn.release();
+                Log.e("Datacollector", "Turn screen on");
+                //check connection status and reset if needed
+                if (System.currentTimeMillis() - lastpacket > 10000) { //last Fitbit data was received more than 10 seconds ago
+                    fixConnection();
                 }
+
+                wakeuptimer.postDelayed(this, 60000);
+
             }
         };
 // Start the initial runnable task by posting through the handler
         wakeuptimer.post(runnableCode);
 
     }
+
+
+
+    private void fixConnection() {
+        //Toggle Bluetooth on and off and start the Fitbit app inb order to fix connection issues
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        /*
+        if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.disable();
+            mBluetoothAdapter.enable();
+        }
+        else {
+            mBluetoothAdapter.enable();
+        }*/
+        // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+        if (launchIntent != null) {
+            startActivity(launchIntent);//null pointer check in case package name was not found
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final Context cont = this;
+        Log.i("fitbit","oncreate was called");
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         while (check != PackageManager.PERMISSION_GRANTED) {
@@ -408,7 +448,7 @@ public class MainActivity extends AppCompatActivity {
 
         volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
         whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
-        cueNoise = whiteNoiseVolume;
+        cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
         volumeBar = (SeekBar) findViewById(R.id.volumeBar);
         int displayVolume = (int) (whiteNoiseVolume * volumeBar.getMax());
         volumeBar.setProgress(displayVolume);
@@ -419,7 +459,7 @@ public class MainActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
                 whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
-                cueNoise = whiteNoiseVolume;
+                cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                 md.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
             }
@@ -450,13 +490,16 @@ public class MainActivity extends AppCompatActivity {
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
                     } else{
+
+                        //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - TMR cannot start.");
+                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
+                                        fixConnection();
                                     }
                                 });
                         alertDialog.show();
@@ -466,12 +509,14 @@ public class MainActivity extends AppCompatActivity {
                     whiteNoise.pause();
                     tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                     stim_seconds = 0;
-                    cueNoise = whiteNoiseVolume;
+                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                     md.setMediaVolume(cueNoise, cueNoise);
                 }
             }
         });
 
+        MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
+        test.readFiles();
         getUserSettings();
     }
 
@@ -514,7 +559,8 @@ public class MainActivity extends AppCompatActivity {
             final int delay = 15000; //milliseconds
             fitbitWakeup.postDelayed(new Runnable(){
                 public void run(){
-                    if (System.currentTimeMillis() > lastpacket+10000) {
+                    if (System.currentTimeMillis() > lastpacket+10000) { //no data from the fitbit
+
                         if (md.isMediaPlaying()){
                             md.pauseMedia();
                         }
@@ -580,7 +626,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM) {
+            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM ||  !tmrStateButton.isChecked()) {
                 if (md.isMediaPlaying()){
                     md.pauseMedia();
                 }
@@ -619,7 +665,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             //tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+String.valueOf(targetVolume)+","+md.getCurrentMedia();
-            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(targetVolume);
+            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(cueNoise);
             return tmrStatus;
         }
 
