@@ -267,6 +267,18 @@ public class MainActivity extends AppCompatActivity {
                         ONSET_CONFIDENCE = Float.parseFloat(line[3]);
                         E_STOP = Float.parseFloat(line[4]);
                         BUFFER_SIZE = Integer.parseInt(line[5]);
+                        if(line.length >= 7){
+                            if(line[6].contains("FILES")){
+                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
+                                overrideHandler.readFiles();
+                                final float volume = server.md.getVolume();
+                                overrideHandler.setMediaVolume(volume, volume);
+                                if(server.md.isMediaPlaying()){
+                                    overrideHandler.startMedia();
+                                }
+                                server.md = overrideHandler;
+                            }
+                        }
                     }
                 }
                 if(!hit){
@@ -503,6 +515,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
+        test.readFiles();
         getUserSettings();
     }
 
