@@ -5,10 +5,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/black"
     android:keepScreenOn="true"
     android:orientation="vertical"
-    android:background="@android:color/black"
     tools:context="neurelectrics.fitbitdatalogger.MainActivity">
+
     <Button
         android:id="@+id/startButton"
         android:layout_width="match_parent"
@@ -40,6 +41,12 @@
         android:layout_height="wrap_content"
         android:text="Set USER ID" />
 
+    <Button
+        android:id="@+id/openDreem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Headband Recording" />
+
     <ToggleButton
         android:id="@+id/tmrState"
         android:layout_width="match_parent"
@@ -53,8 +60,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:max="25"
-        android:paddingEnd="50dp"
         android:paddingStart="50dp"
+        android:paddingEnd="50dp"
         android:progress="10"
         android:progressTint="#FFFFFF"
         android:thumb="@android:drawable/btn_radio" />
@@ -64,10 +71,10 @@
         android:id="@+id/volumeText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:gravity="center"
         android:text="50"
         android:textColor="#FFFFFF"
-        android:textSize="20dp"
-        android:gravity="center"/>
+        android:textSize="20dp" />
 
     <TextView
         android:id="@+id/fConnectionStatus"
