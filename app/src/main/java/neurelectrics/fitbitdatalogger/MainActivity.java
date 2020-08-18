@@ -322,6 +322,15 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void openDreem(){
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("co.rythm.dreem.med");
+        if (launchIntent != null) {
+            startActivity(launchIntent);//null pointer check in case package name was not found
+            System.out.println("DREEM APPLICATION OPENED");
+        } else{
+            System.out.println("DREEM APPLICATION NOT FOUND");
+        }
+    }
 
 
     private void fixConnection() {
@@ -518,6 +527,14 @@ public class MainActivity extends AppCompatActivity {
         MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
         test.readFiles();
         getUserSettings();
+
+        final Button dreemOpenButton = (Button) findViewById(R.id.openDreem);
+        dreemOpenButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openDreem();
+            }
+        });
     }
 
     //stop the server when app is closed
