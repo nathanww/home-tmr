@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/black"
     android:keepScreenOn="true"
     android:orientation="vertical"
-    android:background="@android:color/black"
     tools:context="neurelectrics.fitbitdatalogger.MainActivity">
 
     <Button
@@ -31,13 +32,49 @@
         android:id="@+id/testButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test sound" />
+        android:text="Test sound"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/USERID"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Set USER ID" />
+
+    <Button
+        android:id="@+id/openDreem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Headband Recording" />
+
+    <ToggleButton
+        android:id="@+id/tmrState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ToggleButton" />
+
+
+    <SeekBar
+        android:id="@+id/volumeBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerVertical="true"
+        android:max="25"
+        android:paddingStart="50dp"
+        android:paddingEnd="50dp"
+        android:progress="10"
+        android:progressTint="#FFFFFF"
+        android:thumb="@android:drawable/btn_radio" />
+
+
+    <TextView
+        android:id="@+id/volumeText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="50"
+        android:textColor="#FFFFFF"
+        android:textSize="20dp" />
 
     <TextView
         android:id="@+id/fConnectionStatus"
