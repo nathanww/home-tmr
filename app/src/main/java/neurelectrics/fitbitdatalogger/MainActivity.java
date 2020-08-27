@@ -13,6 +13,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
@@ -24,6 +25,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -155,6 +157,17 @@ public class MainActivity extends AppCompatActivity {
         } catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Maximizes the System volume
+     * In conjunction with onKeyDown override (see below) ensures that System volume is always set to max
+     */
+    private void maximizeSystemVolume(){
+        AudioManager audioManager = (AudioManager) getApplicationContext().getSystemService(this.AUDIO_SERVICE);
+        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
+
     }
 
     private void saveDefaultSettingsFile(){
@@ -475,7 +488,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-
+                maximizeSystemVolume();
             }
 
             @Override
@@ -526,6 +539,7 @@ public class MainActivity extends AppCompatActivity {
 
         MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
         test.readFiles();
+        maximizeSystemVolume();
         getUserSettings();
 
         final Button dreemOpenButton = (Button) findViewById(R.id.openDreem);
@@ -535,6 +549,26 @@ public class MainActivity extends AppCompatActivity {
                 openDreem();
             }
         });
+    }
+
+    @Override
+    protected void onResume() {
+        maximizeSystemVolume();
+        super.onResume();
+    }
+
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode==KeyEvent.KEYCODE_VOLUME_DOWN){
+            return true;
+        }
+        else if(keyCode==KeyEvent.KEYCODE_VOLUME_UP){
+            return true;
+        }
+        else{
+            return super.onKeyDown(keyCode, event);
+        }
     }
 
     //stop the server when app is closed
