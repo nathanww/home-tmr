@@ -17,6 +17,7 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -112,6 +113,15 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = this.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
         return plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+    }
+
+
+    public String getDeviceName() {
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
+
+            return manufacturer+model;
+
     }
 
     @Override
@@ -357,10 +367,14 @@ public class MainActivity extends AppCompatActivity {
         else {
             mBluetoothAdapter.enable();
         }*/
+
         // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
-        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
-        if (launchIntent != null) {
-            startActivity(launchIntent);//null pointer check in case package name was not found
+
+        if (getDeviceName().indexOf("G930") > -1) { //only do this on our S7 devices, because on other devices the app self-restart doesn't work
+            Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+            if (launchIntent != null) {
+                startActivity(launchIntent);//null pointer check in case package name was not found
+            }
         }
     }
     @Override
@@ -368,6 +382,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
+
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         while (check != PackageManager.PERMISSION_GRANTED) {
