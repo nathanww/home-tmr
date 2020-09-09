@@ -72,7 +72,8 @@ public class MainActivity extends AppCompatActivity {
     float E_STOP=0.3f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
-    float CUE_NOISE_OFFSET=0.4f; //how much louder is the cue than the white noise
+    float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
+    float CUE_NOISE_MAX=0.2f; //how much louder can the cues get than white noise
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
@@ -651,6 +652,7 @@ public class MainActivity extends AppCompatActivity {
             return sum / data.size();
         }
         String handleStaging(float prob) {
+            Log.e("stage",prob+"");
             String tmrStatus="0,";
             probBuffer.add(prob);
             if (probBuffer.size() > BUFFER_SIZE) {
@@ -683,8 +685,8 @@ public class MainActivity extends AppCompatActivity {
                         targetVolume=0;
                     }
                     */
-                    cueNoise -= 0.1f;
-                    if(cueNoise < 0.1f){
+                    cueNoise -= 0.3f;
+                    if(cueNoise < 0.0f){
                         cueNoise = 0.0f;
                     }
                     md.setMediaVolume(cueNoise, cueNoise);
@@ -713,8 +715,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                      */
                     cueNoise += volumeInc;
-                    if(cueNoise > 1.0f){
-                        cueNoise = 1.0f;
+                    if(cueNoise > whiteNoiseVolume+CUE_NOISE_MAX){
+                        cueNoise = whiteNoiseVolume+CUE_NOISE_MAX;
                     }
                     md.setMediaVolume(cueNoise, cueNoise);
                     if (!md.isMediaPlaying()){

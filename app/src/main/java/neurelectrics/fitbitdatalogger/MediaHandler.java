@@ -5,6 +5,7 @@ import android.media.MediaPlayer;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -299,7 +300,14 @@ public class MediaHandler {
         for(String line: mediaFileLines){
             String[] brokenUp = line.split(":");
             final Float score = Float.valueOf(brokenUp[0]);
-            final String resID = brokenUp[1].split("\\.")[0];
+            String resID="myoci1";
+            if (brokenUp[1].indexOf(".wav") > -1) {
+                resID = brokenUp[1].split("\\.")[0];
+            }
+            else if (brokenUp.length >= 4) {
+                 resID = brokenUp[4].split("\\.")[0];
+            }
+            Log.i("Found sound",resID);
             final int raw = context.getResources().getIdentifier(resID, "raw", context.getPackageName());
             mediaFileNames.put(raw, resID);
             mediaData.add(new Pair(score, raw));
