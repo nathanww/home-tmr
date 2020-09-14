@@ -74,6 +74,9 @@ public class MainActivity extends AppCompatActivity {
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.2f; //how much louder can the cues get than white noise
+
+    long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
+    long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
@@ -527,6 +530,7 @@ public class MainActivity extends AppCompatActivity {
                     if(System.currentTimeMillis() - lastpacket < 10000) {
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                        turnedOnTime=System.currentTimeMillis();
                     } else{
 
                         //
@@ -660,7 +664,7 @@ public class MainActivity extends AppCompatActivity {
             }
             float avgProb=average(probBuffer);
             Log.e("avg",""+avgProb);
-            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE) {
+            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY) {
                 above_thresh=1;
             }
             else {
@@ -788,6 +792,7 @@ public class MainActivity extends AppCompatActivity {
                     catch(NumberFormatException e){
                         prob = 0;
                     }
+
                     is3current = String.valueOf(prob);
                     staging=handleStaging(prob);
                     Log.e("stage3",split);
