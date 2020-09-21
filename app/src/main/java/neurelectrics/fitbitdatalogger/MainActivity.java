@@ -445,8 +445,9 @@ public class MainActivity extends AppCompatActivity {
         });
         //set up the audio player
         //final MediaPlayer mp = MediaPlayer.create(this, R.raw.sleepmusic);
-        final MediaHandler md = new TestMediaHandler(this);
-        md.readFiles();
+
+        final MediaHandler mdtest = new TestMediaHandler(this);
+        mdtest.readFiles();
         //mp.setLooping(true);
         //mp.setVolume(1.0f,1.0f);
         final Button testButton = (Button) findViewById(R.id.testButton);
@@ -454,12 +455,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (!isPlaying) {
-                    md.startMedia();
+                    mdtest.startMedia();
                     //mp.start();
                     testButton.setText("Stop sound");
                 }
                 else {
-                    md.pauseMedia();
+                    mdtest.pauseMedia();
                     //mp.pause();
                     testButton.setText("Test sound");
 
@@ -501,7 +502,7 @@ public class MainActivity extends AppCompatActivity {
                 volumeText.setText(String.valueOf(progress));
                 whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
                 cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
-                md.setMediaVolume(cueNoise, cueNoise);
+                mdtest.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
             }
 
@@ -552,7 +553,7 @@ public class MainActivity extends AppCompatActivity {
                     tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                     stim_seconds = 0;
                     cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
-                    md.setMediaVolume(cueNoise, cueNoise);
+                    mdtest.setMediaVolume(cueNoise, cueNoise);
                 }
             }
         });
@@ -618,7 +619,7 @@ public class MainActivity extends AppCompatActivity {
         MediaHandler md;
         public fitbitServer() {
             super(8085);
-
+            Log.i("fitbit","server start");
             //set up the audio player
             //mp = MediaPlayer.create(getApplicationContext(), R.raw.sleepmusic);
             //mp.setLooping(true);
@@ -627,6 +628,7 @@ public class MainActivity extends AppCompatActivity {
             md.readFiles();
 
             final Handler fitbitWakeup = new Handler();
+
             final int delay = 15000; //milliseconds
             fitbitWakeup.postDelayed(new Runnable(){
                 public void run(){
@@ -635,11 +637,10 @@ public class MainActivity extends AppCompatActivity {
                         if (md.isMediaPlaying()){
                             md.pauseMedia();
                         }
-                        /*
-                        if (mp.isPlaying()) {
-                            mp.pause();
-                        }
-                         */
+
+
+
+
                     }
 
                     fitbitWakeup.postDelayed(this, delay);
