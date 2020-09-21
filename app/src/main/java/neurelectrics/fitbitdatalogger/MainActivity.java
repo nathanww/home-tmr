@@ -608,6 +608,7 @@ public class MainActivity extends AppCompatActivity {
 
     //fitbitServer handles getting data from the fitbit which sends it on port 8085
     private class fitbitServer extends NanoHTTPD {
+        int telemetryCount=0;
         /*
         private boolean initiateDownloadPrevious = false;
         private boolean downloadPrevious = false;
@@ -852,26 +853,34 @@ public class MainActivity extends AppCompatActivity {
                     //FB battery level - batteryCurrent
                     //Phone plugged in - isPhonePluggedInCurrently
                     //Phone screen on - isScreenOnCurrently
-                JSONObject remoteTeleData = new JSONObject();
-                try {
-                    remoteTeleData.put("hr", hrCurrent);
-                    remoteTeleData.put("is3", is3current);
-                    remoteTeleData.put("is3avg", is3average);
-                    remoteTeleData.put("TMRon", mediaPlayingCurrently);
-                    remoteTeleData.put("vlm", volumeCurrently);
-                    remoteTeleData.put("bat", batteryCurrent);
-                    remoteTeleData.put("plugin", isPhonePluggedInCurrently);
-                    remoteTeleData.put("scrnOn", isScreenOnCurrently);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    String urlString = "http://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
-                    //System.out.println(urlString);
-                    URL url = new URL(urlString);
-                    url.openConnection();
-                } catch (IOException e) {
-                    e.printStackTrace();
+
+                //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
+                telemetryCount++;
+                if (telemetryCount >= 60) {
+                    telemetryCount = 0;
+                    JSONObject remoteTeleData = new JSONObject();
+                    try {
+                        remoteTeleData.put("hr", hrCurrent);
+                        remoteTeleData.put("is3", is3current);
+                        remoteTeleData.put("is3avg", is3average);
+                        remoteTeleData.put("TMRon", mediaPlayingCurrently);
+                        remoteTeleData.put("vlm", volumeCurrently);
+                        remoteTeleData.put("bat", batteryCurrent);
+                        remoteTeleData.put("plugin", isPhonePluggedInCurrently);
+                        remoteTeleData.put("scrnOn", isScreenOnCurrently);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        String urlString = "https://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                        System.out.println("tele" + urlString);
+                        Log.i("telemetry", "send");
+                        URL url = new URL(urlString);
+                        url.openStream();
+                    } catch (Exception e) {
+                        Log.e("telemetry", "error");
+                        e.printStackTrace();
+                    }
                 }
 
 
