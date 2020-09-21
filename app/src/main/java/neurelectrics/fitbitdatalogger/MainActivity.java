@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
-    float CUE_NOISE_MAX=0.2f; //how much louder can the cues get than white noise
+    float CUE_NOISE_MAX=0.1f; //how much louder can the cues get than white noise
 
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long turnedOnTime=0;
