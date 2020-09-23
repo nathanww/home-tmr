@@ -38,6 +38,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.apache.http.client.methods.HttpPost;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -73,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
-    float CUE_NOISE_MAX=0.1f; //how much louder can the cues get than white noise
+    float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
 
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long turnedOnTime=0;
@@ -856,7 +857,7 @@ public class MainActivity extends AppCompatActivity {
 
                 //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
                 telemetryCount++;
-                if (telemetryCount >= 60) {
+                if (telemetryCount >= 60 || getDeviceName().indexOf("G930")  ==-1) { //transmit data every second if not on the G7 because the other phones have bigger data plans
                     telemetryCount = 0;
                     JSONObject remoteTeleData = new JSONObject();
                     try {
@@ -868,11 +869,13 @@ public class MainActivity extends AppCompatActivity {
                         remoteTeleData.put("bat", batteryCurrent);
                         remoteTeleData.put("plugin", isPhonePluggedInCurrently);
                         remoteTeleData.put("scrnOn", isScreenOnCurrently);
+                        remoteTeleData.put("fullStatus",fitbitBuffer);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                     try {
                         String urlString = "https://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                        HttpPost httpPost = new HttpPost(urlString);
                         System.out.println("tele" + urlString);
                         Log.i("telemetry", "send");
                         URL url = new URL(urlString);
