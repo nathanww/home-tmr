@@ -387,6 +387,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
+        getUserSettings();
 
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -494,6 +495,7 @@ public class MainActivity extends AppCompatActivity {
         cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
         volumeBar = (SeekBar) findViewById(R.id.volumeBar);
         int displayVolume = (int) (whiteNoiseVolume * volumeBar.getMax());
+
         volumeBar.setProgress(displayVolume);
         volumeText = (TextView) findViewById(R.id.volumeText);
         volumeText.setText(String.valueOf(displayVolume));
@@ -505,6 +507,9 @@ public class MainActivity extends AppCompatActivity {
                 cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                 mdtest.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+                if (progress < 1) {
+                    volumeBar.setProgress(1);
+                }
             }
 
             @Override
