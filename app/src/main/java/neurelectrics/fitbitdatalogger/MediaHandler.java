@@ -284,6 +284,7 @@ public class MediaHandler {
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
             if(i%2 == 1){
                 mediaDataHalves.first.add(sortedMediaData.get(i-1));
+                Log.i("media",sortedMediaData.get(i-1)+"");
             } else{
                 mediaDataHalves.second.add(sortedMediaData.get(i-1));
             }
