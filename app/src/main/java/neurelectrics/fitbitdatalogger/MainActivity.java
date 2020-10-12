@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
-
+    float MAX_ADAPTION_STEP=0.02f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long turnedOnTime=0;
     int above_thresh=0;
@@ -704,6 +704,14 @@ public class MainActivity extends AppCompatActivity {
                     cueNoise -= 0.3f;
                     if(cueNoise < 0.0f){
                         cueNoise = 0.0f;
+                    }
+
+                    //decrease the maximum cue volume too if it looks like a wakeup was triggered
+                    if (prob < E_STOP) {
+                        whiteNoiseVolume = whiteNoiseVolume - MAX_ADAPTION_STEP;
+                        if (whiteNoiseVolume < 0.01f) {
+                            whiteNoiseVolume=0.01f;
+                        }
                     }
                     md.setMediaVolume(cueNoise, cueNoise);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
