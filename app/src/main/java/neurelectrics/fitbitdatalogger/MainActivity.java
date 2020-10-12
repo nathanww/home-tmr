@@ -470,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
                 isPlaying = !isPlaying;
             }
         });
-
+        /*
         final Button downloadButton = (Button) findViewById(R.id.downloadButton);
         downloadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -479,7 +479,7 @@ public class MainActivity extends AppCompatActivity {
                 downloadButton.setEnabled(false);
             }
         });
-        downloadButton.setEnabled(false);
+        downloadButton.setEnabled(false);*/
         getUserID();
 
         final Button userIDButton = (Button)findViewById(R.id.USERID);
@@ -576,7 +576,11 @@ public class MainActivity extends AppCompatActivity {
                 openDreem();
             }
         });
-    }
+        if (getDeviceName().indexOf("G930") > -1) { //this button is used on the stroke system (Galaxy A10) but not on the home TMR system (S7)
+            dreemOpenButton.setVisibility(View.GONE);
+        }
+
+        }
 
     @Override
     protected void onResume() {

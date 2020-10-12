@@ -14,13 +14,15 @@
         android:id="@+id/startButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start monitoring" />
+        android:text="Start monitoring"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/downloadButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Download Previous" />
+        android:text="Download Previous"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/stopButton"
