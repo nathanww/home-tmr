@@ -76,8 +76,8 @@ public class MainActivity extends AppCompatActivity {
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
-    long ONSET_DELAY=45*60*1000; //minimumj delay before cues start
-    long OFFSET_DELAY=5*60*60*1000;
+    long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
+    long OFFSET_DELAY=3*60*60*1000;
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
