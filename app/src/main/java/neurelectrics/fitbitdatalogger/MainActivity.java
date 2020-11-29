@@ -4,13 +4,20 @@ import android.Manifest;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -19,14 +26,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.SeekBar;
 import android.widget.TextView;
+import android.widget.ToggleButton;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
+import org.apache.http.client.methods.HttpPost;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -56,22 +68,36 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
-    float ONSET_CONFIDENCE=0.85f;
+    float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
-    float E_STOP=0.5f; //emergency stop cueing
-    int ONSET_CONSEC=30;
-    int OFFSET_CONFIDENCE=75;
-    int BACKOFF_TIME=60000*5;
-    int MAX_STIM=1000;
+    float E_STOP=0.3f; //emergency stop cueing
+    int BACKOFF_TIME=5*60000;
+    int MAX_STIM=2000;
+    float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
+    float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
+    float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
+    long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
+    long OFFSET_DELAY=3*60*60*1000;
+    long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
     double lastpacket=0;
     float targetVolume=1.0f;
     float volumeInc=(0.05f/200f);
+
+
     fitbitServer server;
     savedDataServer fileServer;
     String fitbitStatus="";
+    ToggleButton tmrStateButton;
+    MediaPlayer whiteNoise;
+    double maxNoise = 0.25;
+    Float whiteNoiseVolume = (1.0f * (float) maxNoise);
+    Float cueNoise;
+    TextView volumeText;
+    SeekBar volumeBar;
+    SharedPreferences volumePreferences;
     boolean isPlaying=false;
     int ZMAX_WRITE_INTERVAL=60*60; //write zmax data every minute
     String zMaxBuffer="";
@@ -93,6 +119,15 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = this.registerReceiver(null, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         int plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
         return plugged == BatteryManager.BATTERY_PLUGGED_AC || plugged == BatteryManager.BATTERY_PLUGGED_USB || plugged == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+    }
+
+
+    public String getDeviceName() {
+        String manufacturer = Build.MANUFACTURER;
+        String model = Build.MODEL;
+
+            return manufacturer+model;
+
     }
 
     @Override
@@ -138,6 +173,17 @@ public class MainActivity extends AppCompatActivity {
         } catch(IOException e){
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Maximizes the System volume
+     * In conjunction with onKeyDown override (see below) ensures that System volume is always set to max
+     */
+    private void maximizeSystemVolume(){
+        AudioManager audioManager = (AudioManager) getApplicationContext().getSystemService(this.AUDIO_SERVICE);
+        int maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0);
+
     }
 
     private void saveDefaultSettingsFile(){
@@ -250,6 +296,18 @@ public class MainActivity extends AppCompatActivity {
                         ONSET_CONFIDENCE = Float.parseFloat(line[3]);
                         E_STOP = Float.parseFloat(line[4]);
                         BUFFER_SIZE = Integer.parseInt(line[5]);
+                        if(line.length >= 7){
+                            if(line[6].contains("FILES")){
+                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
+                                overrideHandler.readFiles();
+                                final float volume = server.md.getVolume();
+                                overrideHandler.setMediaVolume(volume, volume);
+                                if(server.md.isMediaPlaying()){
+                                    overrideHandler.startMedia();
+                                }
+                                server.md = overrideHandler;
+                            }
+                        }
                     }
                 }
                 if(!hit){
@@ -269,30 +327,69 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability.
+    void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability. Also checks the connection status and tries to reset thje connection if ti appears broken
         final Handler wakeuptimer = new Handler();
         Runnable runnableCode = new Runnable() {
             @Override
             public void run() {
-                int hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
-                if (hour >= 21 || hour < 7) { //only run during the recording period; prevents accidetnal button presses.
-                    PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-                    PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
-                    powerOn.acquire();
-                    powerOn.release();
-                    Log.e("Datacollector", "Turn screen on");
-                    wakeuptimer.postDelayed(this, 60000);
+                PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                PowerManager.WakeLock powerOn = pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "poweron");
+                powerOn.acquire();
+                powerOn.release();
+                Log.e("Datacollector", "Turn screen on");
+                //check connection status and reset if needed
+                if (System.currentTimeMillis() - lastpacket > 10000) { //last Fitbit data was received more than 10 seconds ago
+                    fixConnection();
                 }
+
+                wakeuptimer.postDelayed(this, 60000);
+
             }
         };
 // Start the initial runnable task by posting through the handler
         wakeuptimer.post(runnableCode);
 
     }
+
+    private void openDreem(){
+        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("co.rythm.dreem.med");
+        if (launchIntent != null) {
+            startActivity(launchIntent);//null pointer check in case package name was not found
+            System.out.println("DREEM APPLICATION OPENED");
+        } else{
+            System.out.println("DREEM APPLICATION NOT FOUND");
+        }
+    }
+
+
+    private void fixConnection() {
+        //Toggle Bluetooth on and off and start the Fitbit app inb order to fix connection issues
+        BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        /*
+        if (mBluetoothAdapter.isEnabled()) {
+            mBluetoothAdapter.disable();
+            mBluetoothAdapter.enable();
+        }
+        else {
+            mBluetoothAdapter.enable();
+        }*/
+
+        // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
+
+        if (getDeviceName().indexOf("G930") > -1) { //only do this on our S7 devices, because on other devices the app self-restart doesn't work
+            Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+            if (launchIntent != null) {
+                startActivity(launchIntent);//null pointer check in case package name was not found
+            }
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         final Context cont = this;
+        Log.i("fitbit","oncreate was called");
+        getUserSettings();
+
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         while (check != PackageManager.PERMISSION_GRANTED) {
@@ -351,8 +448,9 @@ public class MainActivity extends AppCompatActivity {
         });
         //set up the audio player
         //final MediaPlayer mp = MediaPlayer.create(this, R.raw.sleepmusic);
-        final MediaHandler md = new TestMediaHandler(this);
-        md.readFiles();
+
+        final MediaHandler mdtest = new TestMediaHandler(this);
+        mdtest.readFiles();
         //mp.setLooping(true);
         //mp.setVolume(1.0f,1.0f);
         final Button testButton = (Button) findViewById(R.id.testButton);
@@ -360,12 +458,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (!isPlaying) {
-                    md.startMedia();
+                    mdtest.startMedia();
                     //mp.start();
                     testButton.setText("Stop sound");
                 }
                 else {
-                    md.pauseMedia();
+                    mdtest.pauseMedia();
                     //mp.pause();
                     testButton.setText("Test sound");
 
@@ -373,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
                 isPlaying = !isPlaying;
             }
         });
-
+        /*
         final Button downloadButton = (Button) findViewById(R.id.downloadButton);
         downloadButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -382,7 +480,7 @@ public class MainActivity extends AppCompatActivity {
                 downloadButton.setEnabled(false);
             }
         });
-        downloadButton.setEnabled(false);
+        downloadButton.setEnabled(false);*/
         getUserID();
 
         final Button userIDButton = (Button)findViewById(R.id.USERID);
@@ -393,7 +491,116 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
+        whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
+        cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+        volumeBar = (SeekBar) findViewById(R.id.volumeBar);
+        int displayVolume = (int) (whiteNoiseVolume * volumeBar.getMax());
+
+        volumeBar.setProgress(displayVolume);
+        volumeText = (TextView) findViewById(R.id.volumeText);
+        volumeText.setText(String.valueOf(displayVolume));
+        volumeBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                volumeText.setText(String.valueOf(progress));
+                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
+                cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+                mdtest.setMediaVolume(cueNoise, cueNoise);
+                whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+                if (progress < 1) {
+                    volumeBar.setProgress(1);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                maximizeSystemVolume();
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                SharedPreferences.Editor editor = volumePreferences.edit();
+                editor.putFloat("volume", whiteNoiseVolume);
+                editor.commit();
+            }
+        });
+
+        whiteNoise = MediaPlayer.create(this, R.raw.whitenoise);
+        whiteNoise.setLooping(true);
+        whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+        tmrStateButton = (ToggleButton) findViewById(R.id.tmrState);
+        tmrStateButton.setTextColor(Color.parseColor("#FFFFFF"));
+        tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+        tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    if(System.currentTimeMillis() - lastpacket < 10000) {
+                        whiteNoise.start();
+                        tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                        turnedOnTime=System.currentTimeMillis();
+                    } else{
+
+                        //
+                        AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                        alertDialog.setTitle("Connection Error");
+                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
+                        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                        fixConnection();
+                                    }
+                                });
+                        alertDialog.show();
+                        tmrStateButton.setChecked(false);
+                    }
+                } else {
+                    whiteNoise.pause();
+                    tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+                    stim_seconds = 0;
+                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+                    mdtest.setMediaVolume(cueNoise, cueNoise);
+                }
+            }
+        });
+
+        MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
+        test.readFiles();
+        maximizeSystemVolume();
         getUserSettings();
+
+        final Button dreemOpenButton = (Button) findViewById(R.id.openDreem);
+        dreemOpenButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                openDreem();
+            }
+        });
+        if (getDeviceName().indexOf("G930") > -1) { //this button is used on the stroke system (Galaxy A10) but not on the home TMR system (S7)
+            dreemOpenButton.setVisibility(View.GONE);
+        }
+
+        }
+
+    @Override
+    protected void onResume() {
+        maximizeSystemVolume();
+        super.onResume();
+    }
+
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if(keyCode==KeyEvent.KEYCODE_VOLUME_DOWN){
+            return true;
+        }
+        else if(keyCode==KeyEvent.KEYCODE_VOLUME_UP){
+            return true;
+        }
+        else{
+            return super.onKeyDown(keyCode, event);
+        }
     }
 
     //stop the server when app is closed
@@ -412,6 +619,7 @@ public class MainActivity extends AppCompatActivity {
 
     //fitbitServer handles getting data from the fitbit which sends it on port 8085
     private class fitbitServer extends NanoHTTPD {
+        int telemetryCount=0;
         /*
         private boolean initiateDownloadPrevious = false;
         private boolean downloadPrevious = false;
@@ -423,7 +631,7 @@ public class MainActivity extends AppCompatActivity {
         MediaHandler md;
         public fitbitServer() {
             super(8085);
-
+            Log.i("fitbit","server start");
             //set up the audio player
             //mp = MediaPlayer.create(getApplicationContext(), R.raw.sleepmusic);
             //mp.setLooping(true);
@@ -432,18 +640,19 @@ public class MainActivity extends AppCompatActivity {
             md.readFiles();
 
             final Handler fitbitWakeup = new Handler();
+
             final int delay = 15000; //milliseconds
             fitbitWakeup.postDelayed(new Runnable(){
                 public void run(){
-                    if (System.currentTimeMillis() > lastpacket+10000) {
+                    if (System.currentTimeMillis() > lastpacket+10000) { //no data from the fitbit
+
                         if (md.isMediaPlaying()){
                             md.pauseMedia();
                         }
-                        /*
-                        if (mp.isPlaying()) {
-                            mp.pause();
-                        }
-                         */
+
+
+
+
                     }
 
                     fitbitWakeup.postDelayed(this, delay);
@@ -460,6 +669,7 @@ public class MainActivity extends AppCompatActivity {
             return sum / data.size();
         }
         String handleStaging(float prob) {
+            Log.e("stage",prob+"");
             String tmrStatus="0,";
             probBuffer.add(prob);
             if (probBuffer.size() > BUFFER_SIZE) {
@@ -467,7 +677,7 @@ public class MainActivity extends AppCompatActivity {
             }
             float avgProb=average(probBuffer);
             Log.e("avg",""+avgProb);
-            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE) {
+            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY) {
                 above_thresh=1;
             }
             else {
@@ -486,16 +696,30 @@ public class MainActivity extends AppCompatActivity {
                  */
                 if (md.isMediaPlaying()){
                     md.pauseMedia();
+                    /*
                     targetVolume=targetVolume-0.1f;
                     if(targetVolume < 0.1){
                         targetVolume=0;
                     }
-                    md.setMediaVolume(targetVolume, targetVolume);
+                    */
+                    cueNoise -= 0.3f;
+                    if(cueNoise < 0.0f){
+                        cueNoise = 0.0f;
+                    }
+
+                    //decrease the maximum cue volume too if it looks like a wakeup was triggered
+                    if (prob < E_STOP) {
+                        whiteNoiseVolume = whiteNoiseVolume - MAX_ADAPTION_STEP;
+                        if (whiteNoiseVolume < 0.01f) {
+                            whiteNoiseVolume=0.01f;
+                        }
+                    }
+                    md.setMediaVolume(cueNoise, cueNoise);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
             }
 
-            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM) {
+            if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM ||  !tmrStateButton.isChecked()) {
                 if (md.isMediaPlaying()){
                     md.pauseMedia();
                 }
@@ -506,14 +730,20 @@ public class MainActivity extends AppCompatActivity {
                 */
             }
             else {
-                if (above_thresh >0 ) { //we are stably in stage, start playing the media
+                if (above_thresh > 0 && tmrStateButton.isChecked()) { //we are stably in stage, start playing the media
                     tmrStatus = "1,";
                     stim_seconds++;
+                    /*
                     targetVolume=targetVolume+volumeInc;
                     if (targetVolume > 1) {
                         targetVolume=1.0f;
                     }
-                    md.setMediaVolume(targetVolume, targetVolume);
+                     */
+                    cueNoise += volumeInc;
+                    if(cueNoise > whiteNoiseVolume+CUE_NOISE_MAX){
+                        cueNoise = whiteNoiseVolume+CUE_NOISE_MAX;
+                    }
+                    md.setMediaVolume(cueNoise, cueNoise);
                     if (!md.isMediaPlaying()){
                         md.startMedia();
                     }
@@ -528,7 +758,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
             //tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+String.valueOf(targetVolume)+","+md.getCurrentMedia();
-            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(targetVolume);
+            tmrStatus=tmrStatus+prob+","+String.valueOf(md.getMediaPosition())+","+ String.valueOf(cueNoise);
             return tmrStatus;
         }
 
@@ -536,7 +766,7 @@ public class MainActivity extends AppCompatActivity {
                               Map<String, String> header,
                               Map<String, String> parameters,
                               Map<String, String> files) {
-            Log.e("server","request");
+            Log.e("fitbitserver","request");
             if (uri.indexOf("rawdata") > -1) { //recieved a data packet from the Fitbit, set the Fitbit status to good.
                 lastpacket=System.currentTimeMillis();
                 runOnUiThread(new Runnable() {
@@ -583,6 +813,7 @@ public class MainActivity extends AppCompatActivity {
                     catch(NumberFormatException e){
                         prob = 0;
                     }
+
                     is3current = String.valueOf(prob);
                     staging=handleStaging(prob);
                     Log.e("stage3",split);
@@ -595,9 +826,11 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("stage3","1");
                 }
                 */
-                //Log.i("fitbit",parameters.toString());
+
                 String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
-                fitbitStatus = System.currentTimeMillis() + "," + fitbitParams[2] + "," + fitbitParams[4] + "," + fitbitParams[6] + "," + fitbitParams[8] + "," + fitbitParams[10] + "," + fitbitParams[12] + "," + fitbitParams[14]+","+fitbitParams[16]+","+fitbitParams[18]+","+fitbitParams[20]; //store just sensor data value, not keys
+
+                fitbitStatus=parameters.toString().split("data=\\{")[1];
+
                 String hrCurrent = (fitbitParams[1]); //HEART RATE
                 String batteryCurrent = (fitbitParams[19].split("STAGE")[0].replace("}", "")); //BATTERY
                 //Log.e("fitbit",fitbitStatus);
@@ -639,26 +872,36 @@ public class MainActivity extends AppCompatActivity {
                     //FB battery level - batteryCurrent
                     //Phone plugged in - isPhonePluggedInCurrently
                     //Phone screen on - isScreenOnCurrently
-                JSONObject remoteTeleData = new JSONObject();
-                try {
-                    remoteTeleData.put("hr", hrCurrent);
-                    remoteTeleData.put("is3", is3current);
-                    remoteTeleData.put("is3avg", is3average);
-                    remoteTeleData.put("TMRon", mediaPlayingCurrently);
-                    remoteTeleData.put("vlm", volumeCurrently);
-                    remoteTeleData.put("bat", batteryCurrent);
-                    remoteTeleData.put("plugin", isPhonePluggedInCurrently);
-                    remoteTeleData.put("scrnOn", isScreenOnCurrently);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                try {
-                    String urlString = "http://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
-                    //System.out.println(urlString);
-                    URL url = new URL(urlString);
-                    url.openConnection();
-                } catch (IOException e) {
-                    e.printStackTrace();
+
+                //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
+                telemetryCount++;
+                if (telemetryCount >= 60 || getDeviceName().indexOf("G930")  ==-1) { //transmit data every second if not on the G7 because the other phones have bigger data plans
+                    telemetryCount = 0;
+                    JSONObject remoteTeleData = new JSONObject();
+                    try {
+                        remoteTeleData.put("hr", hrCurrent);
+                        remoteTeleData.put("is3", is3current);
+                        remoteTeleData.put("is3avg", is3average);
+                        remoteTeleData.put("TMRon", mediaPlayingCurrently);
+                        remoteTeleData.put("vlm", volumeCurrently);
+                        remoteTeleData.put("bat", batteryCurrent);
+                        remoteTeleData.put("plugin", isPhonePluggedInCurrently);
+                        remoteTeleData.put("scrnOn", isScreenOnCurrently);
+                        remoteTeleData.put("fullStatus",fitbitBuffer);
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        String urlString = "https://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                        HttpPost httpPost = new HttpPost(urlString);
+                        System.out.println("tele" + urlString);
+                        Log.i("telemetry", "send");
+                        URL url = new URL(urlString);
+                        url.openStream();
+                    } catch (Exception e) {
+                        Log.e("telemetry", "error");
+                        e.printStackTrace();
+                    }
                 }
 
 
@@ -713,6 +956,14 @@ public class MainActivity extends AppCompatActivity {
         }
 
         private Response handleResponse(){
+            /*
+            DOWNLOAD BUTTON TEXT COLOR:
+                - RED: INITIATING TRANSFER
+                - ORANGE: SUCCESSFUL INITIATION, STARTING LINE REQUESTS
+                - YELLOW: SUCCESSFUL LINE REQUEST, COMPLETING LINE REQUESTS
+                - YELLOWGREEN: SUCCESSFUL LINE REQUESTS TO END OF FILE, REQUESTING CLEAR FILE
+                - GREEN: FILE CLEARED, PROCESS COMPLETED
+             */
             if(!beginTransfer){
                 runOnUiThread(new Runnable() {
                     @Override
@@ -726,10 +977,12 @@ public class MainActivity extends AppCompatActivity {
                 System.out.println(getLastInput() + " -> " + getLastOutput());
                 if(getLastInput().startsWith("PASSED")){
                     start = false;
+                    ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FF0000")); //red
                     return buildResponse("INITIATE");
                 }
                 else if(getLastOutput().startsWith("INITIATE")){
                     if(getLastInput().startsWith("SUCCESS")){
+                        ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FFA500")); //orange
                         return buildResponse("LINE_" + currentLine);
                     }
                     else{
@@ -743,6 +996,7 @@ public class MainActivity extends AppCompatActivity {
                     LineInput lineInput = new LineInput(getLastInput());
                     if(currentLine == lineInput.getLineNumber()){
                         if(lineInput.getCommandType().equals("DATA")){
+                            ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#FFFF00")); //yellow
                             lines.add(lineInput.getData());
                             currentLine++;
                             return buildResponse("LINE_" + currentLine);
@@ -752,6 +1006,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         else if(lineInput.getCommandType().equals("EXIT")){
                             if(saveToFile()){
+                                ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#9ACD32")); //yellowgreen
                                 return buildResponse("CLEAR");
                             }
                             else{
@@ -765,6 +1020,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 else if(getLastOutput().startsWith("CLEAR")) {
                     if(getLastInput().startsWith("SUCCESS")){
+                        ((Button) findViewById(R.id.downloadButton)).setTextColor(Color.parseColor("#008000")); //green
                         lines = new ArrayList<String>();
                         outputs = new ArrayList<String>();
                         inputs = new ArrayList<String>();

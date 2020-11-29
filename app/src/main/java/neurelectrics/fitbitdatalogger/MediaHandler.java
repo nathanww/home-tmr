@@ -5,6 +5,7 @@ import android.media.MediaPlayer;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -37,6 +38,7 @@ public class MediaHandler {
     NOTE: any sound file to be played is identified by it's resource identifier and score.
             A HashMap between resID and filename is used to get identifying filename
      */
+
     private final static int DELAY = 10000;
     private boolean isDelaying = false;
     private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
@@ -53,17 +55,22 @@ public class MediaHandler {
     private BufferedWriter logFileWriter; // Writes to the log file
     private List<String> mediaFilenameHistory = new ArrayList<String>();
     private boolean everPlayed = false; //true if a sound has ever been played
+    public boolean filesLoaded=false;
+    private int soundsPlayed=100;
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
     public void readFiles() {
-        storageDirectory = Environment.getExternalStorageDirectory();
-        System.out.println("dir:"+storageDirectory.toString());
-        setLogFile();
-        mediaData = getSortedMediaData();
-        mediaDataHalves = getMediaDataHalves(mediaData);
-        setPlayableMedia();
-        setNextTrack();
+
+            storageDirectory = Environment.getExternalStorageDirectory();
+            System.out.println("dir:" + storageDirectory.toString());
+            setLogFile();
+            mediaData = getSortedMediaData();
+            mediaDataHalves = getMediaDataHalves(mediaData);
+            setPlayableMedia();
+            setNextTrack();
+            filesLoaded=true;
+
     }
 
 
@@ -205,6 +212,8 @@ public class MediaHandler {
         //Collections.shuffle(halves);
         //playableMedia = halves.get(0);
         playableMedia = mediaDataHalves.first;
+
+        Log.i("playhalf",playableMedia.size()+"");
     }
 
     /**
@@ -214,7 +223,15 @@ public class MediaHandler {
      */
     private void setMediaQueue(){
         mediaQueue = new ArrayList<Pair>(playableMedia);
-        Collections.shuffle(mediaQueue);
+        /*
+        if (soundsPlayed >= 26) { //we have gone through 1 cycle
+            Collections.shuffle(mediaQueue);
+            soundsPlayed = 0;
+        }*/
+        Log.i("queue length",playableMedia.size()+"");
+        /*if (mediaQueue.size() < 25) {
+            int i=1/0;
+        }*/
     }
 
     /**
@@ -242,6 +259,7 @@ public class MediaHandler {
             @Override
             public void onCompletion(MediaPlayer mediaPlayer) {
                 isDelaying = true;
+                soundsPlayed++;
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable(){
                     @Override
@@ -266,6 +284,7 @@ public class MediaHandler {
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
             if(i%2 == 1){
                 mediaDataHalves.first.add(sortedMediaData.get(i-1));
+                Log.i("media",sortedMediaData.get(i-1)+"");
             } else{
                 mediaDataHalves.second.add(sortedMediaData.get(i-1));
             }
@@ -299,7 +318,14 @@ public class MediaHandler {
         for(String line: mediaFileLines){
             String[] brokenUp = line.split(":");
             final Float score = Float.valueOf(brokenUp[0]);
-            final String resID = brokenUp[1].split("\\.")[0];
+            String resID="myoci1";
+            if (brokenUp[1].indexOf(".wav") > -1) {
+                resID = brokenUp[1].split("\\.")[0];
+            }
+            else if (brokenUp.length >= 4) {
+                 resID = brokenUp[4].split("\\.")[0];
+            }
+            Log.i("Found sound",resID);
             final int raw = context.getResources().getIdentifier(resID, "raw", context.getPackageName());
             mediaFileNames.put(raw, resID);
             mediaData.add(new Pair(score, raw));
