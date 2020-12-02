@@ -12,7 +12,7 @@ This respository contains code for the Cognitive Neuroscience Lab home TMR proje
 
 
 # Basic setup
-* Install the Android binary on your phone from <dir> or compile and install
+* Compile and install the Android app
 * Place the BedtimeTaskLog file on the root of the phone's internal storage
 * Install the Fitbit app from source or from [here](https://gallery.fitbit.com/details/b91790b8-2076-4686-9c5b-33ec6034495e)
 # Basic use
