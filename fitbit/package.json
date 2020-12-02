@@ -1,0 +1,44 @@
+{
+  "fitbit": {
+    "appUUID": "b91790b8-2076-4686-9c5b-33ec6034495e",
+    "appType": "clockface",
+    "appDisplayName": "Dreamcatcher Watch",
+    "iconFile": "resources/icon.png",
+    "wipeColor": "#ffffff",
+    "requestedPermissions": [
+      "access_activity",
+      "access_heart_rate",
+      "access_user_profile",
+      "access_internet",
+      "run_background"
+    ],
+    "buildTargets": [
+      "higgs",
+      "meson"
+    ],
+    "i18n": {
+      "en": {
+        "name": "Dreamcatcher Watch"
+      }
+    },
+    "defaultLanguage": "en-US"
+  },
+  "devDependencies": {
+    "@fitbit/sdk": "3.1.3",
+    "@fitbit/sdk-cli": "^1.7.1"
+  },
+  "name": "dreamcatcher_watch",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "fitbit-build",
+    "debug": "fitbit"
+  },
+  "dependencies": {
+    "fitbit-asap": "^1.2.3",
+    "line-reader": "^0.4.0",
+    "readline": "^1.3.0",
+    "request": "^2.88.2"
+  }
+}

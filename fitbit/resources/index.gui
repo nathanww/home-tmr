@@ -1,0 +1,14 @@
+<svg viewport-fill="black">
+  <text id="myClock" x="50%" y="50%+15"
+      fill="white" font-size="96" font-family="System-Regular"
+      text-anchor="middle" text-length="20">00:00</text>
+
+<text id="batWarn" x="50%" y="50%+45"
+      fill="red" font-size="32" font-family="System-Regular"
+      text-anchor="middle" text-length="20"></text>
+
+<text id="downloadStatus" x="50%" y="50%+45"
+      fill="white" font-size="25" font-family="System-Regular"
+      text-anchor="middle" text-length="50"></text>
+
+</svg>
