@@ -106,6 +106,9 @@ public class MainActivity extends AppCompatActivity {
     String fitbitBuffer="";
     int fitbitCount=0;
     ArrayList<Float> probBuffer=new ArrayList<Float>();
+
+
+    boolean conFixArm=false; //whether the app can self-restart
     int getWordAt(String[] data,int position) { //get the word (two bytes) from the zMax hex data stream and combine them to make an int
         int data1 = (int) Long.parseLong(data[position], 16); //first two digits are EEG channel 1
         int data2 = (int) Long.parseLong(data[position+1], 16);
@@ -133,10 +136,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onUserLeaveHint() {
         super.onUserLeaveHint();
-        Log.e("Datacollector","Restarting");
-        Intent intent = new Intent(MainActivity.this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
-        ((AlarmManager) getSystemService(ALARM_SERVICE)).set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, pendingIntent);
+        if (conFixArm) {
+            Log.e("Datacollector", "Restarting");
+            Intent intent = new Intent(MainActivity.this, MainActivity.class);
+            PendingIntent pendingIntent = PendingIntent.getActivity(MainActivity.this, 0, intent, PendingIntent.FLAG_ONE_SHOT);
+            ((AlarmManager) getSystemService(ALARM_SERVICE)).set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, pendingIntent);
+            conFixArm=false;
+        }
     }
 
 /*
@@ -364,6 +370,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void fixConnection() {
         //Toggle Bluetooth on and off and start the Fitbit app inb order to fix connection issues
+        conFixArm=true; //enable app to self-restart
         BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         /*
         if (mBluetoothAdapter.isEnabled()) {
