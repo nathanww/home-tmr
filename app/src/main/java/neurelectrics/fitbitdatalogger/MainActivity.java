@@ -538,13 +538,15 @@ public class MainActivity extends AppCompatActivity {
         whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
         tmrStateButton = (ToggleButton) findViewById(R.id.tmrState);
         tmrStateButton.setTextColor(Color.parseColor("#FFFFFF"));
-        tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+        //tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+        tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+
         tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     if(System.currentTimeMillis() - lastpacket < 10000) {
                         whiteNoise.start();
-                        tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
+                        tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
                     } else{
 
@@ -564,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     whiteNoise.pause();
-                    tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+                    tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
                     stim_seconds = 0;
                     cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                     mdtest.setMediaVolume(cueNoise, cueNoise);
