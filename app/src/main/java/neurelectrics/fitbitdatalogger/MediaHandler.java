@@ -343,6 +343,7 @@ public class MediaHandler {
             for(File file: storageDirectory.listFiles()) {
                 String fileName = file.getName();
                 System.out.println(fileName);
+                // TODO: if BedtimeTaskLog has a sound not compiled in the app, look for a file with that name in the root of the phone's storage and play it
                 if (fileName.contains(("BedtimeTaskLog"))) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     System.out.println("1");

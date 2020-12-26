@@ -37,6 +37,9 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.github.javiersantos.appupdater.AppUpdater;
+import com.github.javiersantos.appupdater.enums.UpdateFrom;
+
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.http.client.methods.HttpPost;
 import org.json.JSONException;
@@ -155,6 +158,9 @@ public class MainActivity extends AppCompatActivity {
         Log.e("Datacollector","Turn screen on");
     }*/
 
+    /*
+        NEXT TASK
+     */
     private void setSettingsFromDefault(){
         File settingsFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_SETTINGS_FILE_NAME);
         try {
@@ -275,10 +281,13 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    // todo: override all user settings
     private void getUserSettings(){
         new Thread(new Runnable() {
             public void run() {
                 //LINK TO SETTINGS PER USER:
+
+                // todo: make it so the user can place a file here instead of reading this URL every time
                 String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
                 List<String[]> settingsData = new ArrayList<>();
                 try {
@@ -392,6 +401,20 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        // check the program for latest version
+        // use a JSON file
+        // configure JSON file to make pop-up direct user to where the update is
+        // *unnecessary comment*
+
+        AppUpdater appUpdater = new AppUpdater(this);
+        appUpdater.setUpdateFrom(UpdateFrom.GITHUB);
+        String user = "nathanww";
+        String repo = "home-tmr";
+        String jsonURL = "https://github.com/nathanww/home-tmr/app/release/...";
+        appUpdater.setGitHubUserAndRepo(user, repo);
+        appUpdater.setUpdateJSON(jsonURL);
+        appUpdater.start();
+
         super.onCreate(savedInstanceState);
         final Context cont = this;
         Log.i("fitbit","oncreate was called");

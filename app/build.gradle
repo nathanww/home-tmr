@@ -28,4 +28,5 @@ dependencies {
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'org.apache.commons:commons-math3:3.6.1'
     compile group: 'org.nanohttpd', name: 'nanohttpd', version: '2.3.1'
+    implementation 'com.github.javiersantos:AppUpdater:2.7'
 }
