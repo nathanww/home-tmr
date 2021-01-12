@@ -405,7 +405,7 @@ public class MainActivity extends AppCompatActivity {
         // use a JSON file
         // configure JSON file to make pop-up direct user to where the update is
         // *unnecessary comment*
-
+/*
         AppUpdater appUpdater = new AppUpdater(this);
         appUpdater.setUpdateFrom(UpdateFrom.GITHUB);
         String user = "nathanww";
@@ -413,7 +413,7 @@ public class MainActivity extends AppCompatActivity {
         String jsonURL = "https://github.com/nathanww/home-tmr/app/release/...";
         appUpdater.setGitHubUserAndRepo(user, repo);
         appUpdater.setUpdateJSON(jsonURL);
-        appUpdater.start();
+        appUpdater.start();*/
 
         super.onCreate(savedInstanceState);
         final Context cont = this;
