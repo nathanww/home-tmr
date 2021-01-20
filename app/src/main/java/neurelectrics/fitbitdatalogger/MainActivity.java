@@ -184,13 +184,6 @@ public class MainActivity extends AppCompatActivity {
                     MAX_ADAPTION_STEP = Float.parseFloat(settingsData[8]);
                     ONSET_DELAY = Long.parseLong(settingsData[9]);
                     OFFSET_DELAY = Long.parseLong(settingsData[10]);
-                    turnedOnTime = Long.parseLong(settingsData[11]);
-                    above_thresh = Integer.parseInt(settingsData[12]);
-                    backoff_time = Double.parseDouble(settingsData[13]);
-                    stim_seconds = Integer.parseInt(settingsData[14]);
-                    lastpacket = Double.parseDouble(settingsData[15]);
-                    targetVolume = Float.parseFloat(settingsData[16]);
-                    volumeInc = Float.parseFloat(settingsData[17]);
 
                 } else{
                     System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
@@ -296,7 +289,6 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // todo: override all user settings
     private void getUserSettings(){
         new Thread(new Runnable() {
             public void run() {
