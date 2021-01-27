@@ -692,7 +692,9 @@ public class MainActivity extends AppCompatActivity {
                         ONSET_DELAY = 0;
                         handleStaging(0.99f);
                         Log.i("debug"," loop ran");
-                        fitbitWakeup.postDelayed(this, 50);
+
+                            fitbitWakeup.postDelayed(this, 3000);
+
                     }
                     else {
                         fitbitWakeup.postDelayed(this, delay);
