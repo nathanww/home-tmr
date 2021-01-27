@@ -568,7 +568,7 @@ public class MainActivity extends AppCompatActivity {
         tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    if(System.currentTimeMillis() - lastpacket < 10000) {
+                    if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
@@ -691,6 +691,7 @@ public class MainActivity extends AppCompatActivity {
                     if (DEBUG_MODE) {
                         ONSET_DELAY = 0;
                         handleStaging(0.99f);
+                        Log.i("debug"," loop ran");
                         fitbitWakeup.postDelayed(this, 50);
                     }
                     else {
@@ -773,7 +774,8 @@ public class MainActivity extends AppCompatActivity {
                 */
             }
             else {
-                if (above_thresh > 0 && tmrStateButton.isChecked()) { //we are stably in stage, start playing the media
+                if (above_thresh > 0 && (tmrStateButton.isChecked()||DEBUG_MODE)) { //we are stably in stage, start playing the media
+                    Log.i("media","run");
                     tmrStatus = "1,";
                     stim_seconds++;
                     /*
