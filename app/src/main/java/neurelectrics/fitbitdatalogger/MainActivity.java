@@ -81,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
+    boolean DEBUG_MODE=true;
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -686,10 +687,20 @@ public class MainActivity extends AppCompatActivity {
 
 
                     }
-
-                    fitbitWakeup.postDelayed(this, delay);
+                    //DEBUG CODE--MAKES THE SOUNDS START IMMEDIATELY
+                    if (DEBUG_MODE) {
+                        ONSET_DELAY = 0;
+                        handleStaging(0.99f);
+                        fitbitWakeup.postDelayed(this, 50);
+                    }
+                    else {
+                        fitbitWakeup.postDelayed(this, delay);
+                    }
                 }
             }, delay);
+
+
+
         }
 
 
