@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
-    boolean DEBUG_MODE=false; //if true, app simulates
+    boolean DEBUG_MODE=true; //if true, app simulates stage 3 sleep
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -289,7 +289,7 @@ public class MainActivity extends AppCompatActivity {
                 //LINK TO SETTINGS PER USER:
 
                 // todo: make it so the user can place a file here instead of reading this URL every time
-                String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
+                String settingsDataLink = "https://raw.githubusercontent.com/nathanww/stroke-tmr-settings/main/SETTINGS.txt";
                 List<String[]> settingsData = new ArrayList<>();
                 try {
                     URL url = new URL(settingsDataLink);
