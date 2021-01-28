@@ -28,7 +28,9 @@ public class GitMediaHandler extends MediaHandler {
         List<Pair<Float, Integer>> fileData = new ArrayList<Pair<Float, Integer>>();
         for (String filename: filenames) {
             System.out.println(filename);
+
             final int raw = context.getResources().getIdentifier(filename.split("\\.")[0], "raw", context.getPackageName());
+            mediaFileNames.put(raw,filename); //store this so we can see the name in the log file
             fileData.add(new Pair<Float, Integer>(0.0f, raw));
         }
         return new Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>>(fileData, fileData);
