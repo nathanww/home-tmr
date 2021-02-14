@@ -593,7 +593,10 @@ public class MainActivity extends AppCompatActivity {
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
-                                        fixConnection();
+                                        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+                                        if (launchIntent != null) {
+                                            startActivity(launchIntent);//null pointer check in case package name was not found
+                                        }
                                     }
                                 });
                         alertDialog.show();
