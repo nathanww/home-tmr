@@ -400,6 +400,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
+    private void resetStim() { //resets all stmulation parameters
+        getUserSettings();
+        turnedOnTime=System.currentTimeMillis();
+        whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
+        cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+        backoff_time=System.currentTimeMillis()+BACKOFF_TIME;
+
+
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // check the program for latest version
@@ -569,6 +579,7 @@ public class MainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
+                        resetStim();
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
