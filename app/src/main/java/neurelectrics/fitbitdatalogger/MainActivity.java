@@ -588,7 +588,7 @@ public class MainActivity extends AppCompatActivity {
                         //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
+                        alertDialog.setMessage("Fitbit is not connected. Make sure it is charged and on your wrist and try again in a minute.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
