@@ -412,24 +412,16 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // check the program for latest version
-        // use a JSON file
-        // configure JSON file to make pop-up direct user to where the update is
-        // *unnecessary comment*
-/*
-        AppUpdater appUpdater = new AppUpdater(this);
-        appUpdater.setUpdateFrom(UpdateFrom.GITHUB);
-        String user = "nathanww";
-        String repo = "home-tmr";
-        String jsonURL = "https://github.com/nathanww/home-tmr/app/release/...";
-        appUpdater.setGitHubUserAndRepo(user, repo);
-        appUpdater.setUpdateJSON(jsonURL);
-        appUpdater.start();*/
+
 
         super.onCreate(savedInstanceState);
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
         getUserSettings();
+         AppUpdater ud=new AppUpdater(this);
+                ud.setUpdateFrom(UpdateFrom.JSON)
+                .setUpdateJSON("https://raw.githubusercontent.com/nathanww/home-tmr/stroke2/app/release/update.json")
+                .start();
 
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
