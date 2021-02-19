@@ -407,6 +407,7 @@ public class MainActivity extends AppCompatActivity {
         whiteNoiseVolume = volumePreferences.getFloat("volume", 1.0f);
         cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
         backoff_time=System.currentTimeMillis()+BACKOFF_TIME;
+        stim_seconds=0;
 
 
     }
