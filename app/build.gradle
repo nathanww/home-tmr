@@ -6,8 +6,8 @@ android {
         applicationId "neurelectrics.zmaxdatacollector"
         minSdkVersion 23
         targetSdkVersion 26
-        versionCode 20
-        versionName "2.0"
+        versionCode 21
+        versionName "2.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         useLibrary 'org.apache.http.legacy'
     }
