@@ -211,7 +211,7 @@ public class MediaHandler {
         //halves.add(mediaDataHalves.second);
         //Collections.shuffle(halves);
         //playableMedia = halves.get(0);
-        playableMedia = mediaDataHalves.first;
+        playableMedia = mediaDataHalves.second;
 
         Log.i("playhalf",playableMedia.size()+"");
     }
