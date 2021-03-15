@@ -67,6 +67,7 @@ import fi.iki.elonen.NanoHTTPD;
 public class MainActivity extends AppCompatActivity {
 
     //TMR control variables
+    //
     private String USER_ID;
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
@@ -178,6 +179,20 @@ public class MainActivity extends AppCompatActivity {
                     ONSET_CONFIDENCE = Float.parseFloat(settingsData[3]);
                     E_STOP = Float.parseFloat(settingsData[4]);
                     BUFFER_SIZE = Integer.parseInt(settingsData[5]);
+                    // the other parameters
+                    CUE_NOISE_OFFSET = Float.parseFloat(settingsData[6]);
+                    CUE_NOISE_MAX = Float.parseFloat(settingsData[7]);
+                    MAX_ADAPTION_STEP = Float.parseFloat(settingsData[8]);
+                    ONSET_DELAY = Long.parseLong(settingsData[9]);
+                    OFFSET_DELAY = Long.parseLong(settingsData[10]);
+                    turnedOnTime = Long.parseLong(settingsData[11]);
+                    above_thresh = Integer.parseInt(settingsData[12]);
+                    backoff_time = Double.parseDouble(settingsData[13]);
+                    stim_seconds = Integer.parseInt(settingsData[14]);
+                    lastpacket = Double.parseDouble(settingsData[15]);
+                    targetVolume = Float.parseFloat(settingsData[16]);
+                    volumeInc = Float.parseFloat(settingsData[17]);
+
                 } else{
                     System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
                     saveDefaultSettingsFile(settingsFile);
@@ -289,6 +304,7 @@ public class MainActivity extends AppCompatActivity {
                 //LINK TO SETTINGS PER USER:
 
                 // todo: make it so the user can place a file here instead of reading this URL every time
+                // place file in internal storage of phone that contains url
                 String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
                 List<String[]> settingsData = new ArrayList<>();
                 try {
@@ -406,7 +422,7 @@ public class MainActivity extends AppCompatActivity {
         // use a JSON file
         // configure JSON file to make pop-up direct user to where the update is
         // *unnecessary comment*
-/*
+
         AppUpdater appUpdater = new AppUpdater(this);
         appUpdater.setUpdateFrom(UpdateFrom.GITHUB);
         String user = "nathanww";
@@ -414,7 +430,7 @@ public class MainActivity extends AppCompatActivity {
         String jsonURL = "https://github.com/nathanww/home-tmr/app/release/...";
         appUpdater.setGitHubUserAndRepo(user, repo);
         appUpdater.setUpdateJSON(jsonURL);
-        appUpdater.start();*/
+        appUpdater.start();
 
         super.onCreate(savedInstanceState);
         final Context cont = this;
