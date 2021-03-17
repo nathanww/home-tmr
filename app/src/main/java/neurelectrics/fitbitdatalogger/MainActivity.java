@@ -946,7 +946,7 @@ public class MainActivity extends AppCompatActivity {
                             remoteTeleData.put("bat", batteryCurrent);
                             remoteTeleData.put("plugin", isPhonePluggedInCurrently);
                             remoteTeleData.put("scrnOn", isScreenOnCurrently);
-                            remoteTeleData.put("fullStatus", fitbitBuffer);
+                            remoteTeleData.put("fullStatus", fitbitStatus);
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
