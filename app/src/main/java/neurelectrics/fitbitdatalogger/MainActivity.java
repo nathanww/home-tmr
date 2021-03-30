@@ -419,10 +419,7 @@ public class MainActivity extends AppCompatActivity {
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
         getUserSettings();
-         AppUpdater ud=new AppUpdater(this);
-                ud.setUpdateFrom(UpdateFrom.JSON)
-                .setUpdateJSON("https://raw.githubusercontent.com/nathanww/home-tmr/stroke2/app/release/update.json")
-                .start();
+
 
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
