@@ -62,14 +62,15 @@ public class MediaHandler {
      */
     public void readFiles() {
 
-            storageDirectory = Environment.getExternalStorageDirectory();
-            System.out.println("dir:" + storageDirectory.toString());
-            setLogFile();
-            mediaData = getSortedMediaData();
-            mediaDataHalves = getMediaDataHalves(mediaData);
-            setPlayableMedia();
-            setNextTrack();
-            filesLoaded=true;
+                storageDirectory = Environment.getExternalStorageDirectory();
+                System.out.println("dir:" + storageDirectory.toString());
+                setLogFile();
+                mediaData = getSortedMediaData();
+                mediaDataHalves = getMediaDataHalves(mediaData);
+                setPlayableMedia();
+                setNextTrack();
+                filesLoaded = true;
+
 
     }
 
@@ -340,10 +341,10 @@ public class MediaHandler {
     private List<String> readMediaFile(){
         List<String> mediaLines = new ArrayList<>();
         try {
+            boolean foundFile=false;
             for(File file: storageDirectory.listFiles()) {
                 String fileName = file.getName();
                 System.out.println(fileName);
-                // TODO: if BedtimeTaskLog has a sound not compiled in the app, look for a file with that name in the root of the phone's storage and play it
                 if (fileName.contains(("BedtimeTaskLog"))) {
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     System.out.println("1");
@@ -352,12 +353,19 @@ public class MediaHandler {
                         String line;
                         while ((line = reader.readLine()) != null)
                             mediaLines.add(line);
+                            foundFile=true; //mark that at least one media line was found
                         return mediaLines;
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return mediaLines; // Returns empty list if no valid file was found
+        //this only runs if the file was not found and it creates a fake media list which just prvents the system from crashing
+        List<String> backupLines = new ArrayList<>();
+        backupLines.add("0.0001:myoci1.wav");
+        backupLines.add("0.0001:myoci1.wav");
+        backupLines.add("0.0001:myoci1.wav");
+
+        return backupLines;
     }
 }
