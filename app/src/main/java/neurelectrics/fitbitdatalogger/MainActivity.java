@@ -73,7 +73,7 @@ public class MainActivity extends AppCompatActivity {
     private String USER_ID_FILE_NAME = "userID.txt";
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt"; //where settings will be cached
     private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
-    private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt"; //Default URL from which to download model settings
+    private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/nathanww/default_tmr_settings/main/SETTINGS.txt"; //Default URL from which to download model settings
 
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
@@ -85,14 +85,15 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
-    boolean DEBUG_MODE=false; //if true, app simulates
+    int ISI=10000; //inter stimulus interval in ms
+    boolean DEBUG_MODE=true; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
     int stim_seconds=0;
     double lastpacket=0;
     float targetVolume=1.0f;
-    float volumeInc=(0.05f/200f);
+    float VOLUME_INC=(0.05f/200f);
 
 
     fitbitServer server;
@@ -113,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
     int FITBIT_WRITE_INTERVAL=10; //write fitbit data every 10 minutes
     String fitbitBuffer="";
     int fitbitCount=0;
+    String filesList=""; //list of files loaded from Github
     ArrayList<Float> probBuffer=new ArrayList<Float>();
 
 
@@ -174,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 saveDefaultSettingsFile(settingsFile);
             } else{
                 BufferedReader fileReader = new BufferedReader(new FileReader(settingsFile));
-                String[] settingsData = fileReader.readLine().split(",");
+                String[] settingsData = fileReader.readLine().replace(" ","").split(",");
                 if(settingsData[0].equals(USER_ID)){
                     System.out.println("USING SETTINGS FROM LAST RUN ON LOCAL BACKUP...");
                     BACKOFF_TIME = Integer.parseInt(settingsData[1]);
@@ -182,19 +184,26 @@ public class MainActivity extends AppCompatActivity {
                     ONSET_CONFIDENCE = Float.parseFloat(settingsData[3]);
                     E_STOP = Float.parseFloat(settingsData[4]);
                     BUFFER_SIZE = Integer.parseInt(settingsData[5]);
-                    // the other parameters
-                    CUE_NOISE_OFFSET = Float.parseFloat(settingsData[6]);
-                    CUE_NOISE_MAX = Float.parseFloat(settingsData[7]);
-                    MAX_ADAPTION_STEP = Float.parseFloat(settingsData[8]);
-                    ONSET_DELAY = Long.parseLong(settingsData[9]);
-                    OFFSET_DELAY = Long.parseLong(settingsData[10]);
-                    turnedOnTime = Long.parseLong(settingsData[11]);
-                    above_thresh = Integer.parseInt(settingsData[12]);
-                    backoff_time = Double.parseDouble(settingsData[13]);
-                    stim_seconds = Integer.parseInt(settingsData[14]);
-                    lastpacket = Double.parseDouble(settingsData[15]);
-                    targetVolume = Float.parseFloat(settingsData[16]);
-                    volumeInc = Float.parseFloat(settingsData[17]);
+                    ONSET_DELAY=Integer.parseInt(settingsData[6]);
+                    OFFSET_DELAY=Integer.parseInt(settingsData[7]);
+                    ISI=Integer.parseInt(settingsData[8]);
+                    CUE_NOISE_OFFSET=Float.parseFloat(settingsData[9]);
+                    CUE_NOISE_MAX=Float.parseFloat(settingsData[10]);
+                    MAX_ADAPTION_STEP=Float.parseFloat(settingsData[11]);
+                    VOLUME_INC=Float.parseFloat(settingsData[12]);
+                    if(settingsData.length >= 14){
+                        if(settingsData[13].contains("FILES")){
+                            MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), settingsData[13]); //if sound files are specified in the URL then play those files
+                            overrideHandler.readFiles();
+                            final float volume = server.md.getVolume();
+                            overrideHandler.setMediaVolume(volume, volume);
+                            if(server.md.isMediaPlaying()){
+                                overrideHandler.startMedia();
+                            }
+                            server.md = overrideHandler;
+                            server.md.DELAY=ISI; //set the ISI correctly
+                        }
+                    }
 
                 } else{
                     System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
@@ -228,7 +237,12 @@ public class MainActivity extends AppCompatActivity {
                 settingsFile.createNewFile();
             }
             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(settingsFile, false));
-            fileWriter.write(USER_ID + "," + BACKOFF_TIME + "," + MAX_STIM + "," + ONSET_CONFIDENCE + "," + E_STOP + "," + BUFFER_SIZE);
+            //"ONSET_TIME,OFFSET_TIME,ISI,CUE_NOISE_OFFSET,CUE_NOISE_MAX,ADAPTATION_STEP,VOLUME_INC"
+            fileWriter.write(USER_ID + "," + BACKOFF_TIME + "," + MAX_STIM + "," + ONSET_CONFIDENCE + "," + E_STOP + "," + BUFFER_SIZE+","+ONSET_DELAY+","+OFFSET_DELAY+","+ISI+","+CUE_NOISE_OFFSET+","+CUE_NOISE_MAX+","+MAX_ADAPTION_STEP+","+VOLUME_INC);
+            if (filesList.length() >= 2) { //if there are files loaded from Github, write them to the local cache
+                fileWriter.write(","+filesList);
+            }
+            fileWriter.flush();
             fileWriter.close();
         } catch(IOException e){
             e.printStackTrace();
@@ -316,9 +330,11 @@ public class MainActivity extends AppCompatActivity {
                 }
                 catch (Exception e) {
                 Log.e("fitbittmr","Error reading config URL");
+                e.printStackTrace();
             }
 
                 // place file in internal storage of phone that contains url
+                Log.i("Settings data location:",settingsDataLink);
                 List<String[]> settingsData = new ArrayList<>();
                 try {
                     URL url = new URL(settingsDataLink);
@@ -341,9 +357,17 @@ public class MainActivity extends AppCompatActivity {
                         ONSET_CONFIDENCE = Float.parseFloat(line[3]);
                         E_STOP = Float.parseFloat(line[4]);
                         BUFFER_SIZE = Integer.parseInt(line[5]);
-                        if(line.length >= 7){
-                            if(line[6].contains("FILES")){
-                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
+                        ONSET_DELAY=Integer.parseInt(line[6]);
+                        OFFSET_DELAY=Integer.parseInt(line[7]);
+                        ISI=Integer.parseInt(line[8]);
+                        CUE_NOISE_OFFSET=Float.parseFloat(line[9]);
+                        CUE_NOISE_MAX=Float.parseFloat(line[10]);
+                        MAX_ADAPTION_STEP=Float.parseFloat(line[11]);
+                        VOLUME_INC=Float.parseFloat(line[12]);
+                        if(line.length >= 14){
+                            if(line[13].contains("FILES")){
+                                filesList=line[13]; //update the list of git files
+                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[13]); //if sound files are specified in the URL then play those files
                                 overrideHandler.readFiles();
                                 final float volume = server.md.getVolume();
                                 overrideHandler.setMediaVolume(volume, volume);
@@ -351,6 +375,7 @@ public class MainActivity extends AppCompatActivity {
                                     overrideHandler.startMedia();
                                 }
                                 server.md = overrideHandler;
+                                server.md.DELAY=ISI; //set the ISI
                             }
                         }
                     }
@@ -688,6 +713,7 @@ public class MainActivity extends AppCompatActivity {
             //mp.setLooping(true);
             //mp.setVolume(1.0f,1.0f);
             md = new MediaHandler(getApplicationContext());
+            md.DELAY=ISI;
             md.readFiles();
 
             final Handler fitbitWakeup = new Handler();
@@ -799,12 +825,12 @@ public class MainActivity extends AppCompatActivity {
                     tmrStatus = "1,";
                     stim_seconds++;
                     /*
-                    targetVolume=targetVolume+volumeInc;
+                    targetVolume=targetVolume+VOLUME_INC;
                     if (targetVolume > 1) {
                         targetVolume=1.0f;
                     }
                      */
-                    cueNoise += volumeInc;
+                    cueNoise += VOLUME_INC;
                     if(cueNoise > whiteNoiseVolume+CUE_NOISE_MAX){
                         cueNoise = whiteNoiseVolume+CUE_NOISE_MAX;
                     }

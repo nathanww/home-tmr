@@ -39,7 +39,7 @@ public class MediaHandler {
             A HashMap between resID and filename is used to get identifying filename
      */
 
-    private final static int DELAY = 10000;
+    public int DELAY = 10000;
     private boolean isDelaying = false;
     private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
     private Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
