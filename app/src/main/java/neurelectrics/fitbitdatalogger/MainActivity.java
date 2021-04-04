@@ -71,7 +71,10 @@ public class MainActivity extends AppCompatActivity {
     private String USER_ID;
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
-    private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
+    private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt"; //where settings will be cached
+    private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
+    private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt"; //Default URL from which to download model settings
+
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.3f; //emergency stop cueing
@@ -297,15 +300,25 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // todo: override all user settings
     private void getUserSettings(){
         new Thread(new Runnable() {
             public void run() {
                 //LINK TO SETTINGS PER USER:
+                File configFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_CONFIG_FILE_NAME);
+                String settingsDataLink = DEFAULT_DATA_LINK;
+                try{
+                BufferedReader fileReader = new BufferedReader(new FileReader(configFile));
+                if (configFile.exists()) {
+                    settingsDataLink = fileReader.readLine().replace("\n", "").replace("\r", "");
+                    fileReader.close();
+                    Log.i("fitbittmr", "read custom settings URL " + settingsDataLink);
+                }
+                }
+                catch (Exception e) {
+                Log.e("fitbittmr","Error reading config URL");
+            }
 
-                // todo: make it so the user can place a file here instead of reading this URL every time
                 // place file in internal storage of phone that contains url
-                String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
                 List<String[]> settingsData = new ArrayList<>();
                 try {
                     URL url = new URL(settingsDataLink);
@@ -418,19 +431,8 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // check the program for latest version
-        // use a JSON file
-        // configure JSON file to make pop-up direct user to where the update is
-        // *unnecessary comment*
 
-        AppUpdater appUpdater = new AppUpdater(this);
-        appUpdater.setUpdateFrom(UpdateFrom.GITHUB);
-        String user = "nathanww";
-        String repo = "home-tmr";
-        String jsonURL = "https://github.com/nathanww/home-tmr/app/release/...";
-        appUpdater.setGitHubUserAndRepo(user, repo);
-        appUpdater.setUpdateJSON(jsonURL);
-        appUpdater.start();
+
 
         super.onCreate(savedInstanceState);
         final Context cont = this;
