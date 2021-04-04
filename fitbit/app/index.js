@@ -214,8 +214,7 @@ function checkTracking() {
         me.exit(); //this will automatically reinitialize the app, forcing transmission to turn off
       }
       
-      
-	    if (bps.present) { //only do this if the device is being worn
+
         secondsRecorded++;
  
         var hr=0;
@@ -265,7 +264,7 @@ function checkTracking() {
             me.exit(); //since this is a clockface, will reinitialize and hopefully fix the connection
           }
         }
-	    }
+	    
     }, 1000); //Data is either transmitted or saved every second on repeat.
   }
 else { //device is not in the logging window, that means we should just periodically restart the connection every 10 mins or so 
