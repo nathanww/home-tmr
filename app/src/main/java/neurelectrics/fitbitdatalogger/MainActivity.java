@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt"; //where settings will be cached
     private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
     private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/nathanww/default_tmr_settings/main/SETTINGS.txt"; //Default URL from which to download model settings
+    private String TELEMETRY_DESTINATION="https://biostream-1024.appspot.com/sendps?"; //where realtime telemetry data is sent
 
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
@@ -324,6 +325,11 @@ public class MainActivity extends AppCompatActivity {
                 BufferedReader fileReader = new BufferedReader(new FileReader(configFile));
                 if (configFile.exists()) {
                     settingsDataLink = fileReader.readLine().replace("\n", "").replace("\r", "");
+                    String tempURL=fileReader.readLine().replace("\n", "").replace("\r", ""); //try to read a second line containing a telemetry destination
+                    if (tempURL != null) {//if it exists
+                        TELEMETRY_DESTINATION=tempURL;
+                        Log.i("fitbittmr", "Using custom telemtry destination "+TELEMETRY_DESTINATION);
+                    }
                     fileReader.close();
                     Log.i("fitbittmr", "read custom settings URL " + settingsDataLink);
                 }
@@ -978,12 +984,12 @@ public class MainActivity extends AppCompatActivity {
                         remoteTeleData.put("bat", batteryCurrent);
                         remoteTeleData.put("plugin", isPhonePluggedInCurrently);
                         remoteTeleData.put("scrnOn", isScreenOnCurrently);
-                        remoteTeleData.put("fullStatus",fitbitBuffer);
+                        remoteTeleData.put("fullStatus",fitbitStatus);
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                     try {
-                        String urlString = "https://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                        String urlString = TELEMETRY_DESTINATION+"user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
                         HttpPost httpPost = new HttpPost(urlString);
                         System.out.println("tele" + urlString);
                         Log.i("telemetry", "send");
