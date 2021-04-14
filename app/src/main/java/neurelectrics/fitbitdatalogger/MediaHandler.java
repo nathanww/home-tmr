@@ -2,6 +2,7 @@ package neurelectrics.fitbitdatalogger;
 
 import android.content.Context;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.util.Pair;
@@ -250,7 +251,14 @@ public class MediaHandler {
             mediaPlayer.release();
             mediaPlayer = null;
         }
-        mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
+        if (CurrentTrack.second > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
+            mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
+        }
+        else {
+            //look up the file name and load from internal storage
+            Log.i("external media",Environment.getExternalStorageDirectory().getPath()+ "/"+mediaFileNames.get(CurrentTrack.second));
+            mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath()+ "/"+mediaFileNames.get(CurrentTrack.second)));
+        }
         currentMediaID = CurrentTrack.second;
         mediaPlayer.setVolume(volume.first,volume.second);
         String mediaFileCurrent = mediaFileNames.get(currentMediaID);
