@@ -7,7 +7,9 @@ _Note!_ As of 4/6/21 we have changed the way sounds are configured in the projec
 # Directories
 **App**--Android Studio project containing the smartphone app
 
-**fitbit**--Fitbit OS project
+**fitbit**--Fitbit OS project for Fitbit Versa/Versa SE
+
+**fitbit5**--Fitbit OS project for Fitbit Sense/Versa 3
 
 **spatialTask**--a simple spatial memory task for Android. Integrates with smartphone app
 
