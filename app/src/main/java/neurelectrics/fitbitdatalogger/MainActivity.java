@@ -75,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
     private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/nathanww/default_tmr_settings/main/SETTINGS.txt"; //Default URL from which to download model settings
     private String TELEMETRY_DESTINATION="https://biostream-1024.appspot.com/sendps?"; //where realtime telemetry data is sent
-
     float ONSET_CONFIDENCE=0.75f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.3f; //emergency stop cueing
@@ -87,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
+    String MODE=""; //for specifiying specific modes like never playing any sound etc
     boolean DEBUG_MODE=false; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
@@ -329,6 +329,10 @@ public class MainActivity extends AppCompatActivity {
                     if (tempURL != null) {//if it exists
                         TELEMETRY_DESTINATION=tempURL;
                         Log.i("fitbittmr", "Using custom telemtry destination "+TELEMETRY_DESTINATION);
+                    }
+                    String modeRead=fileReader.readLine().replace("\n", "").replace("\r", "");
+                    if (modeRead != null) { //if there is an optional mode specified, then read it.
+                        MODE=modeRead;
                     }
                     fileReader.close();
                     Log.i("fitbittmr", "read custom settings URL " + settingsDataLink);
@@ -619,6 +623,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isChecked) {
                     if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
                         whiteNoise.start();
+                        stim_seconds=0;
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
                     } else{
@@ -626,7 +631,7 @@ public class MainActivity extends AppCompatActivity {
                         //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
+                        alertDialog.setMessage("Fitbit is not connected - cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
@@ -662,7 +667,14 @@ public class MainActivity extends AppCompatActivity {
         if (getDeviceName().indexOf("G930") > -1) { //this button is used on the stroke system (Galaxy A10) but not on the home TMR system (S7)
             dreemOpenButton.setVisibility(View.GONE);
         }
+        if (MODE.indexOf("PASSIVE") > -1) {//if the system is configured for passive mode, don't display the volume bar and don't play any white noise
+            volumeBar.setVisibility(View.GONE);
+            volumeText.setVisibility(View.GONE);
+            whiteNoise.setVolume(0,0);
+            whiteNoiseVolume=0.0f;
 
+
+        }
         }
 
     @Override
@@ -773,7 +785,7 @@ public class MainActivity extends AppCompatActivity {
             }
             float avgProb=average(probBuffer);
             Log.e("avg",""+avgProb);
-            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY) {
+            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY && MODE.indexOf("PASSIVE") == -1) {
                 above_thresh=1;
             }
             else {
