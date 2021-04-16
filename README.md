@@ -56,6 +56,7 @@ The meaning of the parameters is shown below, and the [default file](https://raw
 Once your config file is online you then need to tell the app where to find your settings. Do this by creating a file called experimentConfig.txt on the root of the phone's internal storage.
   * The first line of the file should be the URL to your configuration file
   * The second line (optional) is a web server which can receive HTTP requests with telemtry information. You can specify a custom web server here, or leave it blank to use a default server operated by our lab (more details below) or put in some text that is not a url to disble telemetry
+  * If the third line contains the word PASSIVE, the app will run in passive mode, with no sound or volume controls. Otherwise, the app will run in normal mode.
 
 Once you have saved the file, start the app and set the user ID to match the correct configuration.
 
