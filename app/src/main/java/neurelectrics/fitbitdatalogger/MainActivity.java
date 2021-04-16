@@ -619,6 +619,7 @@ public class MainActivity extends AppCompatActivity {
                 if (isChecked) {
                     if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
                         whiteNoise.start();
+                        stim_seconds=0;
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
                     } else{
