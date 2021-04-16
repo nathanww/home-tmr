@@ -17,7 +17,12 @@ _Note!_ As of 4/6/21 we have changed the way sounds are configured in the projec
 
 # Basic setup
 * [Download](https://github.com/nathanww/home-tmr/blob/master/app/release/app-release.apk?raw=true) and install the Android app (or compile it)
-* Install the Fitbit app from source or from [here](https://gallery.fitbit.com/details/b91790b8-2076-4686-9c5b-33ec6034495e)
+* Install the  Fitbit app. There are two version of it depending on what kind of Fitbit you have:
+** [App for Fitbit Versa and Versa SE](https://gallery.fitbit.com/details/b91790b8-2076-4686-9c5b-33ec6034495e)
+** [App for Fitbit Versa 3 and Sense](https://gallery.fitbit.com/details/b91790b8-2076-4686-9c5b-33ec6034496e)
+
+Note: Sometimes the Fitbit app does not install correctly. If the app appears installed but you get a "Fitbit is not connected" error you should **remove the Fitbit clockface completely**. To do this, go to the clock face screen, switch to a different clock face, and then tap the fitbitTMR clock face and select "remove clock face". You can then reinstall it.
+
 # Basic use
 * Make sure the Fitbit is showing the current time. Right now it only transmits data between 21:00 and 7:00 to save power; you can adjust the Fitbit time zone for testing
 * Start the FitbitTMR app
