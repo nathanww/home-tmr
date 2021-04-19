@@ -72,11 +72,11 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
-    float ONSET_CONFIDENCE=0.75f;
+    float ONSET_CONFIDENCE=0.9f;
     int BUFFER_SIZE = 240;
-    float E_STOP=0.3f; //emergency stop cueing
+    float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
-    int MAX_STIM=2000;
+    int MAX_STIM=630;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
