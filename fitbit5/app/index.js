@@ -11,6 +11,7 @@ import { vibration } from "haptics";
 import { me } from "appbit";
 import { BodyPresenceSensor } from "body-presence";
 
+
 me.appTimeoutEnabled=false;
 
 //Converts buffer to a string
@@ -115,9 +116,12 @@ var downloadConfirmation = "unassigned";
 var pastDownloadConfirmation = "unassigned";
 */
 
+
 const hrm = new HeartRateSensor();
 const accel = new Accelerometer();
+if (Gyroscope) {
 const gyro = new Gyroscope();
+}
 const bps = new BodyPresenceSensor();
 
 var secondsRecorded=0;
@@ -128,13 +132,17 @@ let myClock = document.getElementById("myClock");
 let batWarn = document.getElementById("batWarn");
 let downloadStatus = document.getElementById("downloadStatus");
 
+
+
 function checkTracking() {
 	var d = new Date();
 	var hr=d.getHours();
 	if ((hr >= 20 || hr < 7) && !isLogging) {
 	  isLogging=true;
 	  hrm.start();
+    if (Gyroscope) {
 	  gyro.start();
+    }
 	  accel.start();
 	   //bps detects if the device is being worn
 	  bps.start()
@@ -224,7 +232,12 @@ function checkTracking() {
 	        hr=hrm.heartRate;
         }
         let current_accel = [accel.x, accel.y, accel.z]
+        if (Gyroscope) {
         let current_gyro = [gyro.x, gyro.y, gyro.z]
+        }
+        else {
+          let current_gyro = [0, 0, 0]
+        }
         let current_aqTime = new Date().valueOf()
         let current_charge = battery.chargeLevel
         /*
