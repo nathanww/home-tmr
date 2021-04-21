@@ -4,6 +4,8 @@ This respository contains code for the Cognitive Neuroscience Lab home TMR proje
 
 _Note!_ As of 4/6/21 we have changed the way sounds are configured in the project. This document reflects the current method.
 
+
+
 # Directories
 **App**--Android Studio project containing the smartphone app
 
@@ -13,6 +15,16 @@ _Note!_ As of 4/6/21 we have changed the way sounds are configured in the projec
 
 **spatialTask**--a simple spatial memory task for Android. Integrates with smartphone app
 
+# Device support
+Fully supported devices:
+* Fitbit Versa (original)
+* Fitbit Versa SE
+* Fitbit Sense
+Partially supported devices:
+These devices do not have/do not expose a gyro sensor, so they can be used to record data but should not be used for TMR.
+* Fitbit Versa 2
+* Fitbit Versa Lite
+* Fitbit Versa 3
 
 
 # Basic setup
