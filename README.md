@@ -20,10 +20,9 @@ Fully supported devices:
 * Fitbit Versa (original)
 * Fitbit Versa SE
 * Fitbit Sense
+
 Partially supported devices:
 These devices do not have/do not expose a gyro sensor, so they can be used to record data but should not be used for TMR.
-* Fitbit Versa 2
-* Fitbit Versa Lite
 * Fitbit Versa 3
 
 
