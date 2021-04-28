@@ -4,6 +4,8 @@ This respository contains code for the Cognitive Neuroscience Lab home TMR proje
 
 _Note!_ As of 4/6/21 we have changed the way sounds are configured in the project. This document reflects the current method.
 
+
+
 # Directories
 **App**--Android Studio project containing the smartphone app
 
@@ -13,6 +15,15 @@ _Note!_ As of 4/6/21 we have changed the way sounds are configured in the projec
 
 **spatialTask**--a simple spatial memory task for Android. Integrates with smartphone app
 
+# Device support
+Fully supported devices:
+* Fitbit Versa (original)
+* Fitbit Versa SE
+* Fitbit Sense
+
+Partially supported devices:
+These devices do not have/do not expose a gyro sensor, so they can be used to record data but should not be used for TMR.
+* Fitbit Versa 3
 
 
 # Basic setup
@@ -56,6 +67,7 @@ The meaning of the parameters is shown below, and the [default file](https://raw
 Once your config file is online you then need to tell the app where to find your settings. Do this by creating a file called experimentConfig.txt on the root of the phone's internal storage.
   * The first line of the file should be the URL to your configuration file
   * The second line (optional) is a web server which can receive HTTP requests with telemtry information. You can specify a custom web server here, or leave it blank to use a default server operated by our lab (more details below) or put in some text that is not a url to disble telemetry
+  * If the third line contains the word PASSIVE, the app will run in passive mode, with no sound or volume controls. Otherwise, the app will run in normal mode.
 
 Once you have saved the file, start the app and set the user ID to match the correct configuration.
 
