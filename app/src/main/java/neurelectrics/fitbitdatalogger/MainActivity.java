@@ -75,9 +75,9 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
     private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/nathanww/default_tmr_settings/main/SETTINGS.txt"; //Default URL from which to download model settings
     private String TELEMETRY_DESTINATION="https://biostream-1024.appspot.com/sendps?"; //where realtime telemetry data is sent
-    float ONSET_CONFIDENCE=0.75f;
+    float ONSET_CONFIDENCE=0.9f;
     int BUFFER_SIZE = 240;
-    float E_STOP=0.3f; //emergency stop cueing
+    float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
