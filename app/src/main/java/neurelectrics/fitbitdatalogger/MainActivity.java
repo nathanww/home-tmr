@@ -71,9 +71,9 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_USER_ID = "DEFAULT";
     private String USER_ID_FILE_NAME = "userID.txt";
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt";
-    float ONSET_CONFIDENCE=0.75f;
+    float ONSET_CONFIDENCE=0.9f;
     int BUFFER_SIZE = 240;
-    float E_STOP=0.3f; //emergency stop cueing
+    float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
     float CUE_NOISE_OFFSET=0.01f; //how much louder is the cue than the white noise
@@ -571,29 +571,54 @@ public class MainActivity extends AppCompatActivity {
         tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
-                        resetStim();
-                        whiteNoise.start();
-                        tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
-                        turnedOnTime=System.currentTimeMillis();
-                    } else{
+                    if (isPluggedIn()) {
+                        if (System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
 
-                        //
-                        AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
-                        alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected. Make sure it is charged and on your wrist and try again in a minute.");
-                        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                                new DialogInterface.OnClickListener() {
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.dismiss();
-                                        Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
-                                        if (launchIntent != null) {
-                                            startActivity(launchIntent);//null pointer check in case package name was not found
+                            resetStim();
+                            whiteNoise.start();
+                            tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
+                            turnedOnTime = System.currentTimeMillis();
+
+
+                        } else {
+
+                            //
+                            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                            alertDialog.setTitle("Connection Error");
+                            alertDialog.setMessage("Fitbit is not connected. Make sure it is charged and on your wrist and try again in a minute.");
+                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                            Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+                                            if (launchIntent != null) {
+                                                startActivity(launchIntent);//null pointer check in case package name was not found
+                                            }
                                         }
-                                    }
-                                });
-                        alertDialog.show();
+                                    });
+                            alertDialog.show();
+                            tmrStateButton.setChecked(false);
+                        }
+                    }
+                    else { //phone is not plugged in, so show an error message
                         tmrStateButton.setChecked(false);
+
+                            AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
+                            alertDialog.setTitle("Phone not plugged in");
+                            alertDialog.setMessage("The phone must be plugged in to its charger to start");
+                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                            Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
+                                            if (launchIntent != null) {
+                                                startActivity(launchIntent);//null pointer check in case package name was not found
+                                            }
+                                        }
+                                    });
+                        alertDialog.show();
+
+
                     }
                 } else {
                     whiteNoise.pause();
