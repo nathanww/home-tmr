@@ -95,6 +95,11 @@ public class MainActivity extends AppCompatActivity {
     double lastpacket=0;
     float targetVolume=1.0f;
     float VOLUME_INC=(0.05f/200f);
+    int cueCounter=0;
+    boolean silentMode=false;
+    int SWITCH_AT=60;
+
+
 
 
     fitbitServer server;
@@ -822,6 +827,7 @@ public class MainActivity extends AppCompatActivity {
                             whiteNoiseVolume=0.01f;
                         }
                     }
+
                     md.setMediaVolume(cueNoise, cueNoise);
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
@@ -852,7 +858,18 @@ public class MainActivity extends AppCompatActivity {
                     if(cueNoise > whiteNoiseVolume+CUE_NOISE_MAX){
                         cueNoise = whiteNoiseVolume+CUE_NOISE_MAX;
                     }
-                    md.setMediaVolume(cueNoise, cueNoise);
+
+                    cueCounter++;
+                    if (cueCounter > SWITCH_AT) {
+                        silentMode=!silentMode;
+                        cueCounter=0;
+                    }
+                    if (silentMode) { //if we are in a silent/sham block, don't play the sounds
+                        md.setMediaVolume(0, 0);
+                    }
+                    else {
+                        md.setMediaVolume(cueNoise, cueNoise);
+                    }
                     if (!md.isMediaPlaying()){
                         md.startMedia();
                     }
