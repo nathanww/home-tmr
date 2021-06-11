@@ -86,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
+    float ENTRAINMENT_OFF=0.87f;
     String MODE=""; //for specifiying specific modes like never playing any sound etc
     boolean DEBUG_MODE=false; //if true, app simulates
     long turnedOnTime=0;
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     float VOLUME_INC=(0.05f/200f);
     int cueCounter=0;
     boolean silentMode=false;
-    int SWITCH_AT=60;
+    int SWITCH_AT=240;
 
 
 
