@@ -861,7 +861,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     cueCounter++;
-                    if (cueCounter > SWITCH_AT) {
+                    if (cueCounter > SWITCH_AT && false) {
                         silentMode=!silentMode;
                         cueCounter=0;
                     }
