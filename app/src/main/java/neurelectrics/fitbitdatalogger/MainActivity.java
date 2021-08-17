@@ -81,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=8*60*60*1000;
-    boolean DEBUG_MODE=false; //if true, app simulates stage 3 sleep
+    boolean DEBUG_MODE=true; //if true, app simulates stage 3 sleep
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -314,6 +314,7 @@ public class MainActivity extends AppCompatActivity {
                         BUFFER_SIZE = Integer.parseInt(line[5]);
                         if(line.length >= 7){
                             if(line[6].contains("FILES")){
+                                Log.i("gitmedia", "files found,loading...");
                                 MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
                                 overrideHandler.readFiles();
                                 final float volume = server.md.getVolume();
@@ -723,9 +724,16 @@ public class MainActivity extends AppCompatActivity {
                     if (DEBUG_MODE) {
                         ONSET_DELAY = 0;
                         handleStaging(0.99f);
+                        backoff_time=0;
+                        BACKOFF_TIME=0;
                         Log.i("debug"," loop ran");
+                            if (probBuffer.size() > 20) {
+                                fitbitWakeup.postDelayed(this, 10000);
+                            }
+                            else {
+                                fitbitWakeup.postDelayed(this, 1000);
+                            }
 
-                            fitbitWakeup.postDelayed(this, 3000);
 
                     }
                     else {
@@ -747,16 +755,17 @@ public class MainActivity extends AppCompatActivity {
             return sum / data.size();
         }
         String handleStaging(float prob) {
-            Log.e("stage",prob+"");
+            Log.i("stage",prob+"");
             String tmrStatus="0,";
             probBuffer.add(prob);
             if (probBuffer.size() > BUFFER_SIZE) {
                 probBuffer.remove(0);
             }
             float avgProb=average(probBuffer);
-            Log.e("avg",""+avgProb);
+            Log.i("stageavg",""+avgProb);
             if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY) {
                 above_thresh=1;
+                Log.i("stagestatus","on");
             }
             else {
                 above_thresh=0;
