@@ -148,6 +148,9 @@ public class MainActivity extends AppCompatActivity {
             ((AlarmManager) getSystemService(ALARM_SERVICE)).set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 1000, pendingIntent);
             conFixArm=false;
         }
+        else {
+            System.exit(0);
+        }
     }
 
 /*
@@ -593,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
                         //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
+                        alertDialog.setMessage("Fitbit is not connected - sound cannot start.\n\nThe app will now exit, try again in a minute. If the connection still does not succeed, restart the phone.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
