@@ -40,6 +40,7 @@ public class MediaHandler {
      */
 
     private final static int DELAY = 10000;
+    private final boolean GUARD_SOUND=true;
     private boolean isDelaying = false;
     private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
     private Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
@@ -57,6 +58,8 @@ public class MediaHandler {
     private boolean everPlayed = false; //true if a sound has ever been played
     public boolean filesLoaded=false;
     private int soundsPlayed=100;
+    private boolean wasPaused=true;
+
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
@@ -99,6 +102,7 @@ public class MediaHandler {
     public void pauseMedia(){
         isDelaying = false;
         mediaPlayer.pause();
+        wasPaused=false;
     }
 
     /**
@@ -249,7 +253,15 @@ public class MediaHandler {
             mediaPlayer.release();
             mediaPlayer = null;
         }
-        mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
+        if (wasPaused && GUARD_SOUND) { //if this is the first sound after the sound was paused, and guard sound is enabled, play the guard sound
+            //guard sound allows us to have a pobe sound to see if the person is going to wake up before playing regular TMR sound
+            mediaPlayer = MediaPlayer.create(context, context.getResources().getIdentifier("s18", "raw", context.getPackageName()));
+            wasPaused=false;
+        }
+        else {
+            mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
+        }
+
         currentMediaID = CurrentTrack.second;
         mediaPlayer.setVolume(volume.first,volume.second);
         String mediaFileCurrent = mediaFileNames.get(currentMediaID);
