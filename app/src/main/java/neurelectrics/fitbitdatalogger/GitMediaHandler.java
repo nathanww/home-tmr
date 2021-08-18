@@ -2,6 +2,7 @@ package neurelectrics.fitbitdatalogger;
 
 import android.content.Context;
 import android.support.v4.util.Pair;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,7 +28,7 @@ public class GitMediaHandler extends MediaHandler {
         filenames = Arrays.copyOfRange(filenames, 1, filenames.length);
         List<Pair<Float, Integer>> fileData = new ArrayList<Pair<Float, Integer>>();
         for (String filename: filenames) {
-            System.out.println(filename);
+            Log.i("gitmediafile",filename);
 
             final int raw = context.getResources().getIdentifier(filename.split("\\.")[0], "raw", context.getPackageName());
             mediaFileNames.put(raw,filename); //store this so we can see the name in the log file

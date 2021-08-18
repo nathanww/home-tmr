@@ -254,6 +254,7 @@ public class MediaHandler {
         mediaPlayer.setVolume(volume.first,volume.second);
         String mediaFileCurrent = mediaFileNames.get(currentMediaID);
         mediaFilenameHistory.add(mediaFileCurrent);
+        Log.i("mplay",mediaFileCurrent);
         writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
         mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
