@@ -84,7 +84,8 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=8*60*60*1000;
-    boolean DEBUG_MODE=true; //if true, app simulates stage 3 sleep
+    String FILE_DATA = ""; //data stored in the "files:" descriptor on github
+    boolean DEBUG_MODE=false; //if true, app simulates stage 3 sleep
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -174,13 +175,27 @@ public class MainActivity extends AppCompatActivity {
             } else{
                 BufferedReader fileReader = new BufferedReader(new FileReader(settingsFile));
                 String[] settingsData = fileReader.readLine().split(",");
-                if(settingsData[0].equals(USER_ID)){
+                Log.i("userid",""+USER_ID);
+                if(settingsData[0].equals(USER_ID) || USER_ID==null){
                     System.out.println("USING SETTINGS FROM LAST RUN ON LOCAL BACKUP...");
                     BACKOFF_TIME = Integer.parseInt(settingsData[1]);
                     MAX_STIM = Integer.parseInt(settingsData[2]);
                     ONSET_CONFIDENCE = Float.parseFloat(settingsData[3]);
                     E_STOP = Float.parseFloat(settingsData[4]);
                     BUFFER_SIZE = Integer.parseInt(settingsData[5]);
+                    if(settingsData.length >= 7){
+                        if(settingsData[6].contains("FILES") && cueNoise != null){
+                            Log.i("localmedia", "files found,loading...");
+                            FILE_DATA=settingsData[6];
+                            Log.i("filedata",FILE_DATA);
+                            MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), settingsData[6]);
+                            overrideHandler.readFiles();
+                            if(server.md.isMediaPlaying()){
+                                overrideHandler.startMedia();
+                            }
+                            server.md = overrideHandler;
+                        }
+                    }
                 } else{
                     System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
                     saveDefaultSettingsFile(settingsFile);
@@ -214,6 +229,11 @@ public class MainActivity extends AppCompatActivity {
             }
             BufferedWriter fileWriter = new BufferedWriter(new FileWriter(settingsFile, false));
             fileWriter.write(USER_ID + "," + BACKOFF_TIME + "," + MAX_STIM + "," + ONSET_CONFIDENCE + "," + E_STOP + "," + BUFFER_SIZE);
+            Log.i("filedata","basicwrite");
+            if (FILE_DATA.length() > 2) {
+                fileWriter.write(","+FILE_DATA);
+                Log.i("filedata","writing "+FILE_DATA);
+            }
             fileWriter.close();
         } catch(IOException e){
             e.printStackTrace();
@@ -318,6 +338,8 @@ public class MainActivity extends AppCompatActivity {
                         if(line.length >= 7){
                             if(line[6].contains("FILES")){
                                 Log.i("gitmedia", "files found,loading...");
+                                FILE_DATA=line[6];
+                                Log.i("filedata",FILE_DATA);
                                 MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
                                 overrideHandler.readFiles();
                                 final float volume = server.md.getVolume();
