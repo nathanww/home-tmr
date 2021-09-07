@@ -39,6 +39,7 @@ import android.widget.ToggleButton;
 
 import com.github.javiersantos.appupdater.AppUpdater;
 import com.github.javiersantos.appupdater.enums.UpdateFrom;
+import com.jakewharton.processphoenix.ProcessPhoenix;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.http.client.methods.HttpPost;
@@ -643,11 +644,7 @@ public class MainActivity extends AppCompatActivity {
                         tmrStateButton.setChecked(false);
                     }
                 } else {
-                    whiteNoise.pause();
-                    tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
-                    stim_seconds = 0;
-                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
-                    mdtest.setMediaVolume(cueNoise, cueNoise);
+                    ProcessPhoenix.triggerRebirth(getApplicationContext()); //completely reset the configuration by restarting the app
                 }
             }
         });
