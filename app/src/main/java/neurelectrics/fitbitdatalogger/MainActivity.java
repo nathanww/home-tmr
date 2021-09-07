@@ -713,6 +713,7 @@ public class MainActivity extends AppCompatActivity {
 
     //fitbitServer handles getting data from the fitbit which sends it on port 8085
     private class fitbitServer extends NanoHTTPD {
+        boolean sound_started=false; //once the threshold is hit, this allows us to keep playing sounds until it goes below a minumum threshold specified in E_STOP
         int telemetryCount=0;
         /*
         private boolean initiateDownloadPrevious = false;
@@ -785,7 +786,13 @@ public class MainActivity extends AppCompatActivity {
             }
             float avgProb=average(probBuffer);
             Log.e("avg",""+avgProb);
-            if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY && MODE.indexOf("PASSIVE") == -1) {
+            if (avgProb >= ONSET_CONFIDENCE){
+                sound_started=true;
+            }
+            if (avgProb < E_STOP) {
+                sound_started=false;
+            }
+            if ((avgProb >= ONSET_CONFIDENCE || sound_started) && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY && MODE.indexOf("PASSIVE") == -1) {
                 above_thresh=1;
             }
             else {
