@@ -179,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
             } else{
                 BufferedReader fileReader = new BufferedReader(new FileReader(settingsFile));
                 String[] settingsData = fileReader.readLine().replace(" ","").split(",");
-                if(settingsData[0].equals(USER_ID)){
+                if(settingsData[0].equals(USER_ID) || USER_ID==null){
                     System.out.println("USING SETTINGS FROM LAST RUN ON LOCAL BACKUP...");
                     BACKOFF_TIME = Integer.parseInt(settingsData[1]);
                     MAX_STIM = Integer.parseInt(settingsData[2]);
