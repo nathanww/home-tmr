@@ -419,9 +419,10 @@ public class MainActivity extends AppCompatActivity {
                 powerOn.release();
                 Log.e("Datacollector", "Turn screen on");
                 //check connection status and reset if needed
+                /*
                 if (System.currentTimeMillis() - lastpacket > 10000) { //last Fitbit data was received more than 10 seconds ago
                     fixConnection();
-                }
+                }*/
 
                 wakeuptimer.postDelayed(this, 60000);
 
@@ -458,12 +459,11 @@ public class MainActivity extends AppCompatActivity {
 
         // now start the Fitbit app, this should trigger a re-sync if it hasn't synced in a while and re open the TMR app in a cpuple of seconds
 
-        if (getDeviceName().indexOf("G930") > -1) { //only do this on our S7 devices, because on other devices the app self-restart doesn't work
             Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.fitbit.FitbitMobile");
             if (launchIntent != null) {
                 startActivity(launchIntent);//null pointer check in case package name was not found
             }
-        }
+
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -632,7 +632,7 @@ public class MainActivity extends AppCompatActivity {
                         //
                         AlertDialog alertDialog = new AlertDialog.Builder(MainActivity.this).create();
                         alertDialog.setTitle("Connection Error");
-                        alertDialog.setMessage("Fitbit is not connected - cannot start.\n\nTry again in a minute. If the connection still does not succeed, restart the phone.");
+                        alertDialog.setMessage("Fitbit is not connected - cannot start.\n\nSync the Fitbit and try again in a minute. If the connection still does not succeed, see the experiment instructions for troubleshooting steps.");
                         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
