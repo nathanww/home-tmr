@@ -194,11 +194,10 @@ public class MainActivity extends AppCompatActivity {
                     MAX_ADAPTION_STEP=Float.parseFloat(settingsData[11]);
                     VOLUME_INC=Float.parseFloat(settingsData[12]);
                     if(settingsData.length >= 14){
-                        if(settingsData[13].contains("FILES")){
+                        if(settingsData[13].contains("FILES") && cueNoise != null){ //the cuenoise requirement prevents this from running before the app is fully initialized
                             MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), settingsData[13]); //if sound files are specified in the URL then play those files
                             overrideHandler.readFiles();
-                            final float volume = server.md.getVolume();
-                            overrideHandler.setMediaVolume(volume, volume);
+
                             if(server.md.isMediaPlaying()){
                                 overrideHandler.startMedia();
                             }
