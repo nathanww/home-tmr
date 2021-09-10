@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 
 /**
@@ -204,17 +205,23 @@ public class MediaHandler {
     }
 
     /**
-     * Sets the group of audio files to be played for the whole time the application is live
+     * Randomly select which half thethe media files will be played to balance pre-sleep memory across subjects
+     * CAUTION: files are randomized on every run, so this is not safe for use with multiple days of cueing
      */
     private void setPlayableMedia(){
-        // THIS CODE CAN BE USED TO RANDOMIZE WHICH HALF OF THE SOUNDS ARE PLAYED
-        //final List<List<Pair>> halves = new ArrayList();
-        //halves.add(mediaDataHalves.first);
-        //halves.add(mediaDataHalves.second);
-        //Collections.shuffle(halves);
-        //playableMedia = halves.get(0);
-        playableMedia = mediaDataHalves.first;
 
+        Random rd = new Random(); // creating Random object
+        boolean result=rd.nextBoolean();
+        if (result) {
+            playableMedia = mediaDataHalves.first;
+        }
+        else {
+            playableMedia = mediaDataHalves.second;
+        }
+        for(int i = 1; i < playableMedia.size() + 1; i++) {
+            Log.i("mediafile", ""+playableMedia.get(i - 1));
+
+        }
         Log.i("playhalf",playableMedia.size()+"");
     }
 
@@ -293,7 +300,7 @@ public class MediaHandler {
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
             if(i%2 == 1){
                 mediaDataHalves.first.add(sortedMediaData.get(i-1));
-                Log.i("media",sortedMediaData.get(i-1)+"");
+
             } else{
                 mediaDataHalves.second.add(sortedMediaData.get(i-1));
             }
