@@ -54,6 +54,7 @@ public class MediaHandler {
     String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
     private File logFile; // File object for the log file
     private File storageDirectory; // Directory in internal storage in which logFile is stored
+    private File privateStorageDirectory; //directory where the bedtimeTaskLog file is created in newer versions of spatial task; it is in private storage to comply with Android scoped storage
     private BufferedWriter logFileWriter; // Writes to the log file
     private List<String> mediaFilenameHistory = new ArrayList<String>();
     private boolean everPlayed = false; //true if a sound has ever been played
@@ -65,7 +66,11 @@ public class MediaHandler {
     public void readFiles() {
 
                 storageDirectory = Environment.getExternalStorageDirectory();
-                System.out.println("dir:" + storageDirectory.toString());
+                //iwe need to first check whether a bedtimetasklog exists in the private storage directory of the spatial task--find that directory here
+                privateStorageDirectory=new File(storageDirectory.toString()+"/Android/data/appinventor.ai_nathanwhitmore2020.SpatialMemoryTask_6_12_20_GPVersion_checkpoint1/files");
+
+        //private directory for spatial task Android\data\appinventor.ai_nathanwhitmore2020.SpatialMemoryTask_6_12_20_GPVersion_checkpoint1\files
+                Log.i("bedtimedir", storageDirectory.toString());
                 setLogFile();
                 mediaData = getSortedMediaData();
                 mediaDataHalves = getMediaDataHalves(mediaData);
@@ -349,38 +354,42 @@ public class MediaHandler {
         return mediaData;
     }
 
+
+    private List<String> searchForBedtimeLog(File dir) {
+        Log.i("searching media",dir.toString());
+        List<String> mediaLines = new ArrayList<>();
+        try {
+            boolean foundFile=false;
+            for(File file: dir.listFiles()) {
+                String fileName = file.getName();
+                System.out.println(fileName);
+                if (fileName.contains(("BedtimeTaskLog"))) {
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    Log.i("searching media","file found");
+                    String firstLine = reader.readLine();
+                    System.out.println(firstLine);
+                    String line;
+                    while ((line = reader.readLine()) != null)
+                        mediaLines.add(line);
+                    foundFile=true; //mark that at least one media line was found
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("filerror",e.getMessage());
+        }
+        return mediaLines;
+    }
     /**
      * Locates media data file, then gets all of the lines of the media data file
      * @return List of all the lines in a media data file
      */
     private List<String> readMediaFile(){
         List<String> mediaLines = new ArrayList<>();
-        try {
-            boolean foundFile=false;
-            for(File file: storageDirectory.listFiles()) {
-                String fileName = file.getName();
-                System.out.println(fileName);
-                if (fileName.contains(("BedtimeTaskLog"))) {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    System.out.println("1");
-                    String firstLine = reader.readLine();
-                    System.out.println(firstLine);
-                        String line;
-                        while ((line = reader.readLine()) != null)
-                            mediaLines.add(line);
-                            foundFile=true; //mark that at least one media line was found
-                        return mediaLines;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        mediaLines=searchForBedtimeLog(privateStorageDirectory);
+        if (mediaLines.size()==0) { //no file was found in the private storage directory, try the public root of the storage
+            mediaLines=searchForBedtimeLog(storageDirectory);
         }
-        //this only runs if the file was not found and it creates a fake media list which just prvents the system from crashing
-        List<String> backupLines = new ArrayList<>();
-        backupLines.add("0.0001:myoci1.wav");
-        backupLines.add("0.0001:myoci1.wav");
-        backupLines.add("0.0001:myoci1.wav");
-
-        return backupLines;
+        return mediaLines;
     }
 }
