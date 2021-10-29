@@ -753,7 +753,7 @@ public class MainActivity extends AppCompatActivity {
                     //DEBUG CODE--MAKES THE SOUNDS START IMMEDIATELY
                     if (DEBUG_MODE) {
                         ONSET_DELAY = 0;
-                        handleStaging(0.99f);
+                        handleStaging(1.0f);
                         Log.i("debug"," loop ran");
 
                             fitbitWakeup.postDelayed(this, 3000);
