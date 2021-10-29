@@ -5,7 +5,7 @@ import { me } from "companion"
 import { inbox } from "file-transfer";
 import { settingsStorage } from "settings";
 import { scientific } from "scientific";
-import * as neural from "./modelv3.js"
+import * as neural from "./remmodel.js"
 
 
 //neural net settings
@@ -330,7 +330,7 @@ messaging.peerSocket.onmessage = function(evt) {
     //console.log("Message back:");
     //console.log(response);
   //fetch("http://192.168.1.202:8085/rawdata?data="+encodeURIComponent(JSON.stringify(data))+"STAGE"+encodeURIComponent(JSON.stringify(result)));  //send fitbit raw data to local server on port 8085
-  console.log(JSON.stringify(data));
+  console.log(JSON.stringify(result));
   fetch("http://127.0.0.1:8085/rawdata?data="+encodeURIComponent(JSON.stringify(data))+"STAGE"+encodeURIComponent(JSON.stringify(result)));  //send fitbit raw data to local server on port 8085
 
   }
