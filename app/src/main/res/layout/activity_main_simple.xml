@@ -64,9 +64,9 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:max="25"
-        android:paddingEnd="50dp"
         android:paddingStart="50dp"
-        android:progress="10"
+        android:paddingEnd="50dp"
+        android:progress="0"
         android:progressTint="#FFFFFF"
         android:thumb="@android:drawable/btn_radio" />
 
