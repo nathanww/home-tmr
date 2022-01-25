@@ -39,6 +39,7 @@ import android.widget.ToggleButton;
 
 import com.github.javiersantos.appupdater.AppUpdater;
 import com.github.javiersantos.appupdater.enums.UpdateFrom;
+import com.jakewharton.processphoenix.ProcessPhoenix;
 
 import org.apache.commons.math3.stat.descriptive.moment.StandardDeviation;
 import org.apache.http.client.methods.HttpPost;
@@ -76,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
     int BUFFER_SIZE = 240;
     float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
-    int MAX_STIM=630;
+    int MAX_STIM=630*3;
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
@@ -97,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
     String fitbitStatus="";
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
-    double maxNoise = 0.25;
+    double maxNoise = 0.02;
     Float whiteNoiseVolume = (1.0f * (float) maxNoise);
     Float cueNoise;
     TextView volumeText;
@@ -511,6 +512,7 @@ public class MainActivity extends AppCompatActivity {
                     mdtest.startMedia();
                     //mp.start();
                     testButton.setText("Stop sound");
+
                 }
                 else {
                     mdtest.pauseMedia();
@@ -587,6 +589,11 @@ public class MainActivity extends AppCompatActivity {
         tmrStateButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
+                    volumeBar.setProgress(20);
+                    whiteNoiseVolume = new Float((volumeBar.getProgress() / ((float) volumeBar.getMax()))*maxNoise);
+                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+                    mdtest.setMediaVolume(cueNoise, cueNoise);
+                    whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
                     if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
                         whiteNoise.start();
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
@@ -608,11 +615,7 @@ public class MainActivity extends AppCompatActivity {
                         tmrStateButton.setChecked(false);
                     }
                 } else {
-                    whiteNoise.pause();
-                    tmrStateButton.setBackgroundColor(Color.parseColor("#008000"));
-                    stim_seconds = 0;
-                    cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
-                    mdtest.setMediaVolume(cueNoise, cueNoise);
+                    ProcessPhoenix.triggerRebirth(getApplicationContext());
                 }
             }
         });
