@@ -375,7 +375,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("Datacollector", "Turn screen on");
                 //check connection status and reset if needed
                 if (System.currentTimeMillis() - lastpacket > 10000) { //last Fitbit data was received more than 10 seconds ago
-                    fixConnection();
+                    //fixConnection();
                 }
 
                 wakeuptimer.postDelayed(this, 60000);
