@@ -289,7 +289,6 @@ public class MainActivity extends AppCompatActivity {
                 }
                 USER_ID = userID;
                 setUserID(USER_ID);
-                getUserSettings();
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -301,67 +300,7 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    // todo: override all user settings
-    private void getUserSettings(){
-        new Thread(new Runnable() {
-            public void run() {
-                //LINK TO SETTINGS PER USER:
 
-                // todo: make it so the user can place a file here instead of reading this URL every time
-                // place file in internal storage of phone that contains url
-                String settingsDataLink = "https://raw.githubusercontent.com/TorinK2/fb_tmr_settings/master/SETTINGS.txt";
-                List<String[]> settingsData = new ArrayList<>();
-                try {
-                    URL url = new URL(settingsDataLink);
-                    url.openStream();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-                    String currentLine = null;
-                    while((currentLine = reader.readLine()) != null){
-                        settingsData.add(currentLine.replaceAll(" ", "").split(","));
-                    }
-                    reader.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                boolean hit = false;
-                for(String[] line: settingsData){
-                    if(line[0].equals(USER_ID)){
-                        hit = true;
-                        BACKOFF_TIME = Integer.parseInt(line[1]);
-                        MAX_STIM = Integer.parseInt(line[2]);
-                        ONSET_CONFIDENCE = Float.parseFloat(line[3]);
-                        E_STOP = Float.parseFloat(line[4]);
-                        BUFFER_SIZE = Integer.parseInt(line[5]);
-                        if(line.length >= 7){
-                            if(line[6].contains("FILES")){
-                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[6]);
-                                overrideHandler.readFiles();
-                                final float volume = server.md.getVolume();
-                                overrideHandler.setMediaVolume(volume, volume);
-                                if(server.md.isMediaPlaying()){
-                                    overrideHandler.startMedia();
-                                }
-                                server.md = overrideHandler;
-                            }
-                        }
-                    }
-                }
-                if(!hit){
-                    System.out.println("COULD NOT CONNECT TO SERVER OR FIND USERNAME. LOOKING FOR LOCAL BACKUP...");
-                    setSettingsFromDefault();
-                } else{ //if(hit)
-                    saveDefaultSettingsFile();
-                }
-                System.out.println("CURRENT SETTINGS:\n------------------------------");
-                System.out.println("BACKOFF_TIME: " + BACKOFF_TIME);
-                System.out.println("MAX_STIM: " + MAX_STIM);
-                System.out.println("ONSET_CONFIDENCE: " + ONSET_CONFIDENCE);
-                System.out.println("E_STOP: " + E_STOP);
-                System.out.println("BUFFER_SIZE: " + BUFFER_SIZE);
-
-            }
-        }).start();
-    }
 
     void wakeupHandler() { //turn the screen on (if turned off) during recording period to improve acquistion reliability. Also checks the connection status and tries to reset thje connection if ti appears broken
         final Handler wakeuptimer = new Handler();
@@ -439,7 +378,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
-        getUserSettings();
 
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
@@ -623,7 +561,6 @@ public class MainActivity extends AppCompatActivity {
         MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
         test.readFiles();
         maximizeSystemVolume();
-        getUserSettings();
 
         final Button dreemOpenButton = (Button) findViewById(R.id.openDreem);
         dreemOpenButton.setOnClickListener(new View.OnClickListener() {
