@@ -212,7 +212,8 @@ public class MediaHandler {
         //Collections.shuffle(halves);
         //playableMedia = halves.get(0);
         playableMedia = mediaDataHalves.first;
-
+        final int raw = context.getResources().getIdentifier("myoci1", "raw", context.getPackageName());
+        playableMedia.add(new Pair(0.0001, raw));
         Log.i("playhalf",playableMedia.size()+"");
     }
 
@@ -280,13 +281,34 @@ public class MediaHandler {
      * @return Pair of (odd-indexed audio file pairs, even-indexed audio file pairs)
      */
     Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> getMediaDataHalves(List<Pair<Float, Integer>> sortedMediaData){
+        boolean flipOrder=false;
         Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves = new Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>>(new ArrayList<Pair<Float, Integer>>(), new ArrayList<Pair<Float, Integer>>());
         for(int i = 1; i < sortedMediaData.size() + 1; i++){
-            if(i%2 == 1){
-                mediaDataHalves.first.add(sortedMediaData.get(i-1));
-                Log.i("media",sortedMediaData.get(i-1)+"");
-            } else{
-                mediaDataHalves.second.add(sortedMediaData.get(i-1));
+
+            Log.i("flip",flipOrder+"");
+            if(i%2 == 0){ //zero modulo, this is an even number
+                if (flipOrder) {
+                    mediaDataHalves.first.add(sortedMediaData.get(i - 1));
+                    Log.i("media1", sortedMediaData.get(i - 1) + "");
+
+                }
+                else {
+                    mediaDataHalves.second.add(sortedMediaData.get(i - 1));
+                    Log.i("media2", sortedMediaData.get(i - 1) + "");
+
+                }
+                flipOrder=!flipOrder; //reverse the flipping order after each sequence
+
+            } else{ //nonzero, this is an odd number
+                if (flipOrder) {
+                    mediaDataHalves.second.add(sortedMediaData.get(i - 1));
+                    Log.i("media2", sortedMediaData.get(i - 1) + "");
+
+                }
+                else {
+                    mediaDataHalves.first.add(sortedMediaData.get(i - 1));
+                    Log.i("media1", sortedMediaData.get(i - 1) + "");
+                }
             }
         }
         return mediaDataHalves;
