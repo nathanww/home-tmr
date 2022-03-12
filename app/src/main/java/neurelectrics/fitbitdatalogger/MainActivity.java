@@ -83,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=15*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
-    boolean DEBUG_MODE=false; //if true, app simulates
+    boolean DEBUG_MODE=true; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -510,6 +510,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
+                volumePreferences = getSharedPreferences("volume_preferences", MODE_PRIVATE);
                 SharedPreferences.Editor editor = volumePreferences.edit();
                 editor.putFloat("volume", whiteNoiseVolume);
                 editor.commit();

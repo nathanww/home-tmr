@@ -6,6 +6,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.support.v4.util.Pair;
 import android.util.Log;
+import android.widget.Button;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -32,6 +33,7 @@ public class MediaHandler {
      */
     public MediaHandler(Context context){
         this.context = context;
+        getUserID();
     }
 
     /*
@@ -57,6 +59,20 @@ public class MediaHandler {
     private boolean everPlayed = false; //true if a sound has ever been played
     public boolean filesLoaded=false;
     private int soundsPlayed=100;
+    String USER_ID="";
+    private String USER_ID_FILE_NAME = "userID.txt";
+
+    private void getUserID(){
+        File userIDFile = new File(Environment.getExternalStorageDirectory(), USER_ID_FILE_NAME);
+        try {
+                BufferedReader fileReader = new BufferedReader(new FileReader(userIDFile));
+                USER_ID = fileReader.readLine();
+            }
+         catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
@@ -211,8 +227,16 @@ public class MediaHandler {
         //halves.add(mediaDataHalves.second);
         //Collections.shuffle(halves);
         //playableMedia = halves.get(0);
-        playableMedia = mediaDataHalves.first;
-        final int raw = context.getResources().getIdentifier("myoci1", "raw", context.getPackageName());
+
+        //set the laf depending on user ID
+        if (USER_ID.indexOf("B") > -1 ) { //this is a switch that determines if we use the first or second list
+            playableMedia = mediaDataHalves.second;
+
+        }
+        else {
+            playableMedia = mediaDataHalves.first;
+        }
+        final int raw = context.getResources().getIdentifier("myoci2", "raw", context.getPackageName());
         playableMedia.add(new Pair(0.0001, raw));
         Log.i("playhalf",playableMedia.size()+"");
     }
