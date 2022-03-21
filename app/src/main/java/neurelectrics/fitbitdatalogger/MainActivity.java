@@ -167,45 +167,7 @@ public class MainActivity extends AppCompatActivity {
     /*
         NEXT TASK
      */
-    private void setSettingsFromDefault(){
-        File settingsFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_SETTINGS_FILE_NAME);
-        try {
-            if(!settingsFile.exists()) {
-                System.out.println("NO LOCAL BACKUP. RESORTING TO DEFAULT...");
-                saveDefaultSettingsFile(settingsFile);
-            } else{
-                BufferedReader fileReader = new BufferedReader(new FileReader(settingsFile));
-                String[] settingsData = fileReader.readLine().split(",");
-                if(settingsData[0].equals(USER_ID)){
-                    System.out.println("USING SETTINGS FROM LAST RUN ON LOCAL BACKUP...");
-                    BACKOFF_TIME = Integer.parseInt(settingsData[1]);
-                    MAX_STIM = Integer.parseInt(settingsData[2]);
-                    ONSET_CONFIDENCE = Float.parseFloat(settingsData[3]);
-                    E_STOP = Float.parseFloat(settingsData[4]);
-                    BUFFER_SIZE = Integer.parseInt(settingsData[5]);
-                    // the other parameters
-                    CUE_NOISE_OFFSET = Float.parseFloat(settingsData[6]);
-                    CUE_NOISE_MAX = Float.parseFloat(settingsData[7]);
-                    MAX_ADAPTION_STEP = Float.parseFloat(settingsData[8]);
-                    ONSET_DELAY = Long.parseLong(settingsData[9]);
-                    OFFSET_DELAY = Long.parseLong(settingsData[10]);
-                    turnedOnTime = Long.parseLong(settingsData[11]);
-                    above_thresh = Integer.parseInt(settingsData[12]);
-                    backoff_time = Double.parseDouble(settingsData[13]);
-                    stim_seconds = Integer.parseInt(settingsData[14]);
-                    lastpacket = Double.parseDouble(settingsData[15]);
-                    targetVolume = Float.parseFloat(settingsData[16]);
-                    volumeInc = Float.parseFloat(settingsData[17]);
 
-                } else{
-                    System.out.println("LOCAL BACKUP DOES NOT MATCH USER ID. RESORTING TO DEFAULT...");
-                    saveDefaultSettingsFile(settingsFile);
-                }
-            }
-        } catch(IOException e){
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Maximizes the System volume
