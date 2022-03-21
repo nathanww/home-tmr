@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import fi.iki.elonen.NanoHTTPD;
 
@@ -85,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
-    int ISI=10000; //inter stimulus interval in ms
+    int ISI=1200; //inter stimulus interval in ms
     float ENTRAINMENT_OFF=0.87f;
     String MODE=""; //for specifiying specific modes like never playing any sound etc
     boolean DEBUG_MODE=false; //if true, app simulates
@@ -479,7 +480,8 @@ public class MainActivity extends AppCompatActivity {
         final Context cont = this;
         Log.i("fitbit","oncreate was called");
         getUserSettings();
-
+        Random rd=new Random();
+        silentMode=rd.nextBoolean();
         //we need runtime permission to create files in the shared storage, so request it
         int check = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         while (check != PackageManager.PERMISSION_GRANTED) {
@@ -861,17 +863,12 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     cueCounter++;
-                    if (cueCounter > SWITCH_AT && false) {
-                        silentMode=!silentMode;
-                        cueCounter=0;
-                    }
-                    if (silentMode) { //if we are in a silent/sham block, don't play the sounds
-                        md.setMediaVolume(0, 0);
-                    }
-                    else {
+
+
+
                         md.setMediaVolume(cueNoise, cueNoise);
-                    }
-                    if (!md.isMediaPlaying()){
+
+                    if (!md.isMediaPlaying()&& !silentMode){
                         md.startMedia();
                     }
                     /*
