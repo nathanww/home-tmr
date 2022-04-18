@@ -589,7 +589,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
-                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise);
+                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise)+0.01f;
                 cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                 mdtest.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
