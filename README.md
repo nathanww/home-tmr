@@ -16,12 +16,12 @@ _Note!_ As of 4/6/21 we have changed the way sounds are configured in the projec
 **spatialTask**--a simple spatial memory task for Android. Integrates with smartphone app
 
 # Device support
-## Caution! The Versa 4 and Sense 3 are **not** supported. This is because these devices do not allow installing third-party apps.
+## Caution! The Versa 4 and Sense 2 are **not** supported. This is because these devices do not allow installing third-party apps.
 
 Fully supported devices:
 * Fitbit Versa 1/2
 * Fitbit Versa SE
-* Fitbit Sense 1/2
+* Fitbit Sense 1
 
 Partially supported devices:
 These devices do not have/do not expose a gyro sensor, so they can be used to record data but should not be used for TMR.
