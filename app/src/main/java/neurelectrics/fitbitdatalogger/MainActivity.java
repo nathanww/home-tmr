@@ -1034,7 +1034,6 @@ public class MainActivity extends AppCompatActivity {
                             }
                             try {
                                 String urlString = "https://biostream-1024.appspot.com/sendps?user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
-                                HttpPost httpPost = new HttpPost(urlString);
                                 System.out.println("tele" + urlString);
                                 Log.i("telemetry", "send");
                                 URL url = new URL(urlString);
