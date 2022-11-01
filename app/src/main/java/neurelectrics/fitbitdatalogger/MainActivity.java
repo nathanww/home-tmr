@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity {
     float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
-    float CUE_NOISE_OFFSET=0.01f; //how much louder is the cue than the white noise
+    float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.01f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start

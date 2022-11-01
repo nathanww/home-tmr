@@ -40,7 +40,7 @@ public class MediaHandler {
      */
 
     private final static int DELAY = 10000;
-    private final boolean GUARD_SOUND=true;
+    private final boolean GUARD_SOUND=false;
     private boolean isDelaying = false;
     private List<Pair<Float, Integer>> mediaData; // Sorted by score (Score, Resource Identifier) pairs
     private Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves; // Odd- & even-  indexed halves of mediaData
