@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
     long OFFSET_DELAY=8*60*60*1000;
     String FILE_DATA = ""; //data stored in the "files:" descriptor on github
-    boolean DEBUG_MODE=false; //if true, app simulates stage 3 sleep
+    boolean DEBUG_MODE=true; //if true, app simulates stage 3 sleep
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
