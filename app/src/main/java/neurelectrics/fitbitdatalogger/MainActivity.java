@@ -760,8 +760,6 @@ public class MainActivity extends AppCompatActivity {
                         String FAKE_DATA="( is3=1 ):0.99,";
                         try {
                             String urlString = "http://localhost:8085/rawdata?data=" +  URLEncoder.encode(FAKE_DATA, StandardCharsets.UTF_8.toString());
-                            HttpPost httpPost = new HttpPost(urlString);
-
                             URL url = new URL(urlString);
                             url.openStream();
                         } catch (Exception e) {
