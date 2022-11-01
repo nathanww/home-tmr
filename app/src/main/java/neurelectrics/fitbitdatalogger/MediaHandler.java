@@ -350,13 +350,15 @@ public class MediaHandler {
      * Locates media data file, then gets all of the lines of the media data file
      * @return List of all the lines in a media data file
      */
-    private List<String> readMediaFile(){
+    private List<String> readMediaFile() {
+        boolean foundFile=false;
         List<String> mediaLines = new ArrayList<>();
         try {
             for(File file: storageDirectory.listFiles()) {
                 String fileName = file.getName();
                 // TODO: if BedtimeTaskLog has a sound not compiled in the app, look for a file with that name in the root of the phone's storage and play it
                 if (fileName.contains(("BedtimeTaskLog"))) {
+                    foundFile=true;
                     BufferedReader reader = new BufferedReader(new FileReader(file));
                     System.out.println("1");
                     String firstLine = reader.readLine();
@@ -369,6 +371,9 @@ public class MediaHandler {
             }
         } catch (Exception e) {
             e.printStackTrace();
+        }
+        if (!foundFile) { //fallback to keep the app from crashing if the file was not found and we haven't loaded data from the server yet
+            mediaLines.add("0:0:0:0:silent.wav:0");
         }
         return mediaLines; // Returns empty list if no valid file was found
     }
