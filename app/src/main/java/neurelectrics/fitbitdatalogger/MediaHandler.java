@@ -96,17 +96,21 @@ public class MediaHandler {
      * Starts audio playback
      */
     public void startMedia(){
-        everPlayed = true;
-        isDelaying = true;
-        mediaPlayer.start();
+        if (mediaPlayer != null) {
+            everPlayed = true;
+            isDelaying = true;
+            mediaPlayer.start();
+        }
     }
 
     /**
      * Pauses audio playback
      */
     public void pauseMedia(){
-        isDelaying = false;
-        mediaPlayer.pause();
+        if (mediaPlayer != null) {
+            isDelaying = false;
+            mediaPlayer.pause();
+        }
     }
 
     /**
@@ -127,7 +131,13 @@ public class MediaHandler {
      * @return Current playback position in the current audio file
      */
     public int getMediaPosition(){
-        return mediaPlayer.getCurrentPosition();
+        if (mediaPlayer != null) {
+            return mediaPlayer.getCurrentPosition();
+        }
+        else {
+            return -1;
+
+        }
     }
 
     /**
@@ -138,7 +148,9 @@ public class MediaHandler {
      */
     public void setMediaVolume(float leftVolume, float rightVolume){
         volume = new Pair<Float, Float>(leftVolume, rightVolume);
-        mediaPlayer.setVolume(volume.first, volume.second);
+        if (mediaPlayer  != null) {
+            mediaPlayer.setVolume(volume.first, volume.second);
+        }
     }
 
     /**
@@ -146,11 +158,17 @@ public class MediaHandler {
      * @return Currently playing media filename of "none" if no media playing
      */
     public String getCurrentMedia(){
-        if(isMediaPlaying()){
-            return mediaFileNames.get(currentMediaID);
-        } else{
+        if (mediaPlayer != null) {
+            if (isMediaPlaying()) {
+                return mediaFileNames.get(currentMediaID);
+            } else {
+                return "none";
+            }
+        }
+        else {
             return "none";
         }
+
     }
 
     public int getCueCount(){

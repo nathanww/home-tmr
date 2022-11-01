@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=false; //if true, app simulates
+    boolean DEBUG_MODE=true; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
