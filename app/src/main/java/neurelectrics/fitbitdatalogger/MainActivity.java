@@ -736,7 +736,7 @@ public class MainActivity extends AppCompatActivity {
             final int delay = 15000; //milliseconds
             fitbitWakeup.postDelayed(new Runnable(){
                 public void run(){
-                    if (System.currentTimeMillis() > lastpacket+10000) { //no data from the fitbit
+                    if (System.currentTimeMillis() > lastpacket+10000 ) { //no data from the fitbit
 
                         if (md.isMediaPlaying()){
                             md.pauseMedia();

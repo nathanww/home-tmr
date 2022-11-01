@@ -114,7 +114,12 @@ public class MediaHandler {
      * @return If currently playing True, else False
      */
     public boolean isMediaPlaying(){
-        return mediaPlayer.isPlaying() || isDelaying;
+        if (mediaPlayer != null) {
+            return mediaPlayer.isPlaying() || isDelaying;
+        }
+        else {
+            return false;
+        }
     }
 
     /**
@@ -257,42 +262,43 @@ public class MediaHandler {
         if(mediaQueue.size() == 0) {
             setMediaQueue();
         }
-        Pair<Float, Integer> CurrentTrack = mediaQueue.get(0);
-        mediaQueue.remove(0);
-        if(mediaPlayer != null){
-            mediaPlayer.release();
-            mediaPlayer = null;
-        }
-        if (CurrentTrack.second > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
-            mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
-        }
-        else {
-            //look up the file name and load from internal storage
-            Log.i("external media",Environment.getExternalStorageDirectory().getPath()+ "/"+mediaFileNames.get(CurrentTrack.second));
-            mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath()+ "/"+mediaFileNames.get(CurrentTrack.second)));
-        }
-        currentMediaID = CurrentTrack.second;
-        mediaPlayer.setVolume(volume.first,volume.second);
-        String mediaFileCurrent = mediaFileNames.get(currentMediaID);
-        mediaFilenameHistory.add(mediaFileCurrent);
-        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
-        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-            @Override
-            public void onCompletion(MediaPlayer mediaPlayer) {
-                isDelaying = true;
-                soundsPlayed++;
-                Handler handler = new Handler();
-                handler.postDelayed(new Runnable(){
-                    @Override
-                    public void run() {
-                        setNextTrack();
-                        if(isDelaying){
-                            startMedia();
-                        }
-                    }
-                }, DELAY);
+        else { //only do this if files could actually load
+            Pair<Float, Integer> CurrentTrack = mediaQueue.get(0);
+            mediaQueue.remove(0);
+            if (mediaPlayer != null) {
+                mediaPlayer.release();
+                mediaPlayer = null;
             }
-        });
+            if (CurrentTrack.second > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
+                mediaPlayer = MediaPlayer.create(context, CurrentTrack.second);
+            } else {
+                //look up the file name and load from internal storage
+                Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + mediaFileNames.get(CurrentTrack.second));
+                mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + mediaFileNames.get(CurrentTrack.second)));
+            }
+            currentMediaID = CurrentTrack.second;
+            mediaPlayer.setVolume(volume.first, volume.second);
+            String mediaFileCurrent = mediaFileNames.get(currentMediaID);
+            mediaFilenameHistory.add(mediaFileCurrent);
+            writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
+            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mediaPlayer) {
+                    isDelaying = true;
+                    soundsPlayed++;
+                    Handler handler = new Handler();
+                    handler.postDelayed(new Runnable() {
+                        @Override
+                        public void run() {
+                            setNextTrack();
+                            if (isDelaying) {
+                                startMedia();
+                            }
+                        }
+                    }, DELAY);
+                }
+            });
+        }
     }
 
     /**
