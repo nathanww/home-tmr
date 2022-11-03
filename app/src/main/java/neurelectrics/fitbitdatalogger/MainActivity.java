@@ -175,10 +175,12 @@ public class MainActivity extends AppCompatActivity {
     //updates the files and delay of the media handler when data is received from the server
     private void updateMediaHandler() {
         if ( server != null && server.md != null) {
-            server.md.pauseMedia();
-            server.md=new MediaHandler(getApplicationContext(),filesList);
-            server.md.DELAY=ISI;
-            server.md.readFiles();
+            if (filesList != "FILES:silent.wav") { //only update if there's a real update to be had
+                server.md.pauseMedia();
+                server.md = new MediaHandler(getApplicationContext(), filesList);
+                server.md.DELAY = ISI;
+                server.md.readFiles();
+            }
 
 
         }

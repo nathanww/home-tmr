@@ -75,7 +75,7 @@ public class MediaHandler {
                 storageDirectory = Environment.getExternalStorageDirectory();
                 setLogFile();
                 getMediaData();
-                setNextTrack();
+                //setNextTrack();
                 filesLoaded = true;
 
 
@@ -96,9 +96,11 @@ public class MediaHandler {
      * Starts audio playback
      */
     public void startMedia(){
+        setNextTrack();
         if (mediaPlayer != null) {
             everPlayed = true;
             isDelaying = true;
+
             mediaPlayer.start();
             Log.i("mediap","media start");
         }
@@ -241,6 +243,7 @@ public class MediaHandler {
 
     private void setMediaQueue(){
         mediaQueue=mediaFileNames;
+        Log.i("q=",mediaFileNames.toString());
     }
 
     /**
@@ -249,6 +252,7 @@ public class MediaHandler {
      */
 
     private void setNextTrack(){
+        Log.i("files",files);
         System.out.println("NEXT TRACK");
         if (mediaQueue == null) {
             setMediaQueue();
@@ -269,30 +273,36 @@ public class MediaHandler {
             } else {
                 //look up the file name and load from internal storage
                 Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav");
-                mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav"));
+                mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav"));
             }
             currentMediaID = CurrentTrack.first;
-            mediaPlayer.setVolume(volume.first, volume.second);
-            String mediaFileCurrent = CurrentTrack.second;
-            mediaFilenameHistory.add(mediaFileCurrent);
-            writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
-            mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                @Override
-                public void onCompletion(MediaPlayer mediaPlayer) {
-                    isDelaying = true;
-                    soundsPlayed++;
-                    Handler handler = new Handler();
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            setNextTrack();
-                            if (isDelaying) {
-                                startMedia();
+            if (mediaPlayer != null) {
+                mediaPlayer.setVolume(volume.first, volume.second);
+                String mediaFileCurrent = CurrentTrack.second;
+                mediaFilenameHistory.add(mediaFileCurrent);
+                writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mediaPlayer) {
+                        Log.i("mediap","completed");
+                        isDelaying = true;
+                        soundsPlayed++;
+                        Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                setNextTrack();
+                                if (isDelaying) {
+                                    startMedia();
+                                }
                             }
-                        }
-                    }, DELAY);
-                }
-            });
+                        }, DELAY);
+                    }
+                });
+            }
+            else {
+                //setNextTrack();
+            }
         }
     }
 
