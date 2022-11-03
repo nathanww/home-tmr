@@ -117,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
     int FITBIT_WRITE_INTERVAL=10; //write fitbit data every 10 minutes
     String fitbitBuffer="";
     int fitbitCount=0;
-    String filesList=""; //list of files loaded from Github
+    String filesList="FILES:silent.wav"; //list of files loaded from Github
     ArrayList<Float> probBuffer=new ArrayList<Float>();
 
 
@@ -171,6 +171,18 @@ public class MainActivity extends AppCompatActivity {
     /*
         NEXT TASK
      */
+
+    //updates the files and delay of the media handler when data is received from the server
+    private void updateMediaHandler() {
+        if ( server != null && server.md != null) {
+            server.md.pauseMedia();
+            server.md=new MediaHandler(getApplicationContext(),filesList);
+            server.md.DELAY=ISI;
+            server.md.readFiles();
+
+
+        }
+    }
     private void setSettingsFromDefault(){
         File settingsFile = new File(Environment.getExternalStorageDirectory(), DEFAULT_SETTINGS_FILE_NAME);
         try {
@@ -195,15 +207,10 @@ public class MainActivity extends AppCompatActivity {
                     MAX_ADAPTION_STEP=Float.parseFloat(settingsData[11]);
                     VOLUME_INC=Float.parseFloat(settingsData[12]);
                     if(settingsData.length >= 14){
-                        if(settingsData[13].contains("FILES") && cueNoise != null){ //the cuenoise requirement prevents this from running before the app is fully initialized
-                            MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), settingsData[13]); //if sound files are specified in the URL then play those files
-                            overrideHandler.readFiles();
+                        if(settingsData[13].contains("FILES")) {
 
-                            if(server.md.isMediaPlaying()){
-                                overrideHandler.startMedia();
-                            }
-                            server.md = overrideHandler;
-                            server.md.DELAY=ISI; //set the ISI correctly
+                            filesList=settingsData[13]; //update the list of git files
+                            updateMediaHandler();
                         }
                     }
 
@@ -378,15 +385,7 @@ public class MainActivity extends AppCompatActivity {
                         if(line.length >= 14){
                             if(line[13].contains("FILES")){
                                 filesList=line[13]; //update the list of git files
-                                MediaHandler overrideHandler = new GitMediaHandler(getApplicationContext(), line[13]); //if sound files are specified in the URL then play those files
-                                overrideHandler.readFiles();
-                                final float volume = server.md.getVolume();
-                                overrideHandler.setMediaVolume(volume, volume);
-                                if(server.md.isMediaPlaying()){
-                                    overrideHandler.startMedia();
-                                }
-                                server.md = overrideHandler;
-                                server.md.DELAY=ISI; //set the ISI
+                                updateMediaHandler();
                             }
                         }
                     }
@@ -531,41 +530,7 @@ public class MainActivity extends AppCompatActivity {
                 System.exit(0);
             }
         });
-        //set up the audio player
-        //final MediaPlayer mp = MediaPlayer.create(this, R.raw.sleepmusic);
 
-        final MediaHandler mdtest = new TestMediaHandler(this);
-        mdtest.readFiles();
-        //mp.setLooping(true);
-        //mp.setVolume(1.0f,1.0f);
-        final Button testButton = (Button) findViewById(R.id.testButton);
-        testButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!isPlaying) {
-                    mdtest.startMedia();
-                    //mp.start();
-                    testButton.setText("Stop sound");
-                }
-                else {
-                    mdtest.pauseMedia();
-                    //mp.pause();
-                    testButton.setText("Test sound");
-
-                }
-                isPlaying = !isPlaying;
-            }
-        });
-        /*
-        final Button downloadButton = (Button) findViewById(R.id.downloadButton);
-        downloadButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                fileServer.startTransmit();
-                downloadButton.setEnabled(false);
-            }
-        });
-        downloadButton.setEnabled(false);*/
         getUserID();
 
         final Button userIDButton = (Button)findViewById(R.id.USERID);
@@ -591,7 +556,6 @@ public class MainActivity extends AppCompatActivity {
                 volumeText.setText(String.valueOf(progress));
                 whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise)+0.01f;
                 cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
-                mdtest.setMediaVolume(cueNoise, cueNoise);
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
                 if (progress < 1) {
                     volumeBar.setProgress(1);
@@ -649,8 +613,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        MediaHandler test = new GitMediaHandler(getApplicationContext(), "FILES:s1.wav:s2.wav");
-        test.readFiles();
+
         maximizeSystemVolume();
         getUserSettings();
 
@@ -727,7 +690,8 @@ public class MainActivity extends AppCompatActivity {
             //mp = MediaPlayer.create(getApplicationContext(), R.raw.sleepmusic);
             //mp.setLooping(true);
             //mp.setVolume(1.0f,1.0f);
-            md = new MediaHandler(getApplicationContext());
+            getUserSettings();
+            md = new MediaHandler(getApplicationContext(),filesList);
             md.DELAY=ISI;
             md.readFiles();
 
@@ -1019,7 +983,6 @@ public class MainActivity extends AppCompatActivity {
                         }
                         try {
                             String urlString = TELEMETRY_DESTINATION + "user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
-                            HttpPost httpPost = new HttpPost(urlString);
                             System.out.println("tele" + urlString);
                             Log.i("telemetry", "send");
                             URL url = new URL(urlString);
