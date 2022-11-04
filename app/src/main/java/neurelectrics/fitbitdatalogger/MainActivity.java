@@ -833,6 +833,7 @@ public class MainActivity extends AppCompatActivity {
                     md.setMediaVolume(cueNoise, cueNoise);
                     if (!md.isMediaPlaying()){
                         md.startMedia();
+                        Log.i("mediaf","fired");
                     }
                     /*
                     mp.setVolume(targetVolume,targetVolume);

@@ -66,13 +66,16 @@ public class MediaHandler {
     private List<String> mediaFilenameHistory = new ArrayList<String>();
     private boolean everPlayed = false; //true if a sound has ever been played
     public boolean filesLoaded=false;
-    private int soundsPlayed=100;
+    private int soundsPlayed=0;
+    private int mfindex=0;
+    Handler soundHandler; //loop which handles playing the cue sounds
     /**
      * Reads the files and sets up the MediaHandler for audio playback
      */
     public void readFiles() {
 
                 storageDirectory = Environment.getExternalStorageDirectory();
+
                 setLogFile();
                 getMediaData();
                 //setNextTrack();
@@ -82,31 +85,47 @@ public class MediaHandler {
     }
 
 
-    /**
-     * Reads the files and sets up the MediaHandler for audio playback
-     * Allows specification of a different location/filename for the log file
-     * @param logFileName New location/filename for the log file
-     */
-    public void readFiles(String logFileName){
-        this.logFileName = logFileName;
-        readFiles();
-    }
+
 
     /**
      * Starts audio playback
      */
     public void startMedia(){
-        setNextTrack();
-        if (mediaPlayer != null) {
+        //setNextTrack();
+
+            soundHandler=new Handler();
             everPlayed = true;
             isDelaying = true;
+            //start the timing loop
+            soundHandler.post(new Runnable() {
+                public void run() {
+                    if (mfindex >= mediaFileNames.size()) { //if we've reached the end, then reset
+                        mfindex=0;
+                    }
+                    Pair<Integer,String> CurrentTrack = mediaFileNames.get(mfindex);
+                    mfindex++;
+                    if (CurrentTrack.first > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
+                        mediaPlayer = MediaPlayer.create(context, CurrentTrack.first);
+                        Log.i("Internal media",""+CurrentTrack.second);
+                    } else {
+                        //look up the file name and load from internal storage
+                        Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav");
+                        mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav"));
+                    }
+                    currentMediaID = CurrentTrack.first;
+                    if (mediaPlayer != null) {
+                        mediaPlayer.setVolume(volume.first, volume.second);
+                        String mediaFileCurrent = CurrentTrack.second;
+                        mediaFilenameHistory.add(mediaFileCurrent);
+                        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
+                        mediaPlayer.start();
+                    }
+                    soundHandler.postDelayed(this, DELAY);
+                }
+            });
 
-            mediaPlayer.start();
             Log.i("mediap","media start");
-        }
-        else {
-            Log.i("mediap","media is null");
-        }
+
     }
 
     /**
@@ -242,8 +261,10 @@ public class MediaHandler {
 
 
     private void setMediaQueue(){
+        mediaFileNames=new ArrayList<Pair<Integer, String>>();
+        getMediaData();
         mediaQueue=mediaFileNames;
-        Log.i("q=",mediaFileNames.toString());
+       Log.i("qr=",mediaQueue.toString());
     }
 
     /**
@@ -252,21 +273,31 @@ public class MediaHandler {
      */
 
     private void setNextTrack(){
-        Log.i("files",files);
+
         System.out.println("NEXT TRACK");
         if (mediaQueue == null) {
             setMediaQueue();
+            Log.i("mf","null");
         }
+        Log.i("mf",mediaQueue.toString());
+
+        Log.i("q=",mediaQueue.toString());
+        Log.i("mediap","qsize "+mediaQueue.size());
+        Log.i("mediap","Loading next file");
+
+        Pair<Integer,String> CurrentTrack = mediaQueue.get(0);
+        int temp=mediaQueue.size();
+
+        mediaQueue.remove(0);
+        Log.i("sizetest",temp+","+mediaQueue.size());
         if(mediaQueue.size() == 0) {
             setMediaQueue();
-            Log.i("mediap","q is empty");
+            Log.i("mediap","q is empty "+mediaQueue.size());
 
         }
-        else { //only do this if files could actually load
-            Log.i("mediap","Loading next file");
-            Pair<Integer,String> CurrentTrack = mediaQueue.get(0);
-            mediaQueue.remove(0);
 
+
+            Log.i("currentmedia",CurrentTrack.second+","+mediaFileNames.toString());
             if (CurrentTrack.first > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
                 mediaPlayer = MediaPlayer.create(context, CurrentTrack.first);
                 Log.i("Internal media",""+CurrentTrack.second);
@@ -278,58 +309,42 @@ public class MediaHandler {
             currentMediaID = CurrentTrack.first;
             if (mediaPlayer != null) {
                 mediaPlayer.setVolume(volume.first, volume.second);
-                String mediaFileCurrent = CurrentTrack.second;
-                mediaFilenameHistory.add(mediaFileCurrent);
-                writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
-                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mediaPlayer) {
-                        Log.i("mediap","completed");
-                        isDelaying = true;
-                        soundsPlayed++;
-                        Handler handler = new Handler();
-                        handler.postDelayed(new Runnable() {
+                        String mediaFileCurrent = CurrentTrack.second;
+                        mediaFilenameHistory.add(mediaFileCurrent);
+                        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
+                        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                             @Override
-                            public void run() {
-                                setNextTrack();
-                                if (isDelaying) {
-                                    startMedia();
-                                }
-                            }
-                        }, DELAY);
+                            public void onCompletion(MediaPlayer mediaPlayer) {
+                                Log.i("mediap","completed");
+                                isDelaying = true;
+                                soundsPlayed++;
+                                Handler handler = new Handler();
+                                handler.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        setNextTrack();
+                                        if (isDelaying) {
+                                            startMedia();
+                                        }
+                                    }
+                                }, DELAY);
                     }
                 });
             }
             else {
                 //setNextTrack();
             }
-        }
+
     }
 
-    /**
-     * Breaks sorted (score, resID) pairs into two halves
-     * @param sortedMediaData all audio files in (score, resID) pairs, sorted by score
-     * @return Pair of (odd-indexed audio file pairs, even-indexed audio file pairs)
-     */
-    Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> getMediaDataHalves(List<Pair<Float, Integer>> sortedMediaData){
-        Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>> mediaDataHalves = new Pair<List<Pair<Float, Integer>>, List<Pair<Float, Integer>>>(new ArrayList<Pair<Float, Integer>>(), new ArrayList<Pair<Float, Integer>>());
-        for(int i = 1; i < sortedMediaData.size() + 1; i++){
-            if(i%2 == 1){
-                mediaDataHalves.first.add(sortedMediaData.get(i-1));
 
-            } else{
-                mediaDataHalves.second.add(sortedMediaData.get(i-1));
-            }
-        }
-        return mediaDataHalves;
-    }
 
   
 
 
     void getMediaData(){
         final List<String> mediaFileLines = splitFiles(files);
-        System.out.println(mediaFileLines);
+        Log.i("mediafiles",mediaFileLines.toString());
         final List<Pair<Float, Integer>> mediaData = new ArrayList<>();
         for(String line: mediaFileLines){
             String resID="";
@@ -339,7 +354,7 @@ public class MediaHandler {
             else {
                 resID=line;
             }
-            Log.i("Found sound",resID);
+            Log.i("foundsound",line+","+resID);
             final int raw = context.getResources().getIdentifier(resID, "raw", context.getPackageName());
             Pair<Integer,String> temp=new Pair<Integer,String>(raw,resID);
             mediaFileNames.add(temp); //add to the list of media
