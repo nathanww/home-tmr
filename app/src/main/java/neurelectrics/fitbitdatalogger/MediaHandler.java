@@ -61,12 +61,10 @@ public class MediaHandler {
     String logFileName = "MediaLog.txt"; //Filename of file to write log data to in internal storage
     private File logFile; // File object for the log file
     private File storageDirectory; // Directory in internal storage in which logFile is stored
-    private File privateStorageDirectory; //directory where the bedtimeTaskLog file is created in newer versions of spatial task; it is in private storage to comply with Android scoped storage
     private BufferedWriter logFileWriter; // Writes to the log file
     private List<String> mediaFilenameHistory = new ArrayList<String>();
     private boolean everPlayed = false; //true if a sound has ever been played
     public boolean filesLoaded=false;
-    private int soundsPlayed=0;
     private int mfindex=0;
     Handler soundHandler; //loop which handles playing the cue sounds
     /**
@@ -78,7 +76,6 @@ public class MediaHandler {
 
                 setLogFile();
                 getMediaData();
-                //setNextTrack();
                 filesLoaded = true;
 
 
@@ -91,7 +88,6 @@ public class MediaHandler {
      * Starts audio playback
      */
     public void startMedia(){
-        //setNextTrack();
 
             soundHandler=new Handler();
             everPlayed = true;
@@ -261,90 +257,6 @@ public class MediaHandler {
     }
 
 
-
-
-    private void setMediaQueue(){
-        mediaFileNames=new ArrayList<Pair<Integer, String>>();
-        getMediaData();
-        mediaQueue=mediaFileNames;
-       Log.i("qr=",mediaQueue.toString());
-    }
-
-    /**
-     * Sets up the new media to be played after the initial track is complete
-     * "Recursively" called using MediaPlayed OnCompletion callback function
-     */
-
-    private void setNextTrack(){
-
-        System.out.println("NEXT TRACK");
-        if (mediaQueue == null) {
-            setMediaQueue();
-            Log.i("mf","null");
-        }
-        Log.i("mf",mediaQueue.toString());
-
-        Log.i("q=",mediaQueue.toString());
-        Log.i("mediap","qsize "+mediaQueue.size());
-        Log.i("mediap","Loading next file");
-
-        Pair<Integer,String> CurrentTrack = mediaQueue.get(0);
-        int temp=mediaQueue.size();
-
-        mediaQueue.remove(0);
-        Log.i("sizetest",temp+","+mediaQueue.size());
-        if(mediaQueue.size() == 0) {
-            setMediaQueue();
-            Log.i("mediap","q is empty "+mediaQueue.size());
-
-        }
-
-
-            Log.i("currentmedia",CurrentTrack.second+","+mediaFileNames.toString());
-            if (CurrentTrack.first > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
-                mediaPlayer = MediaPlayer.create(context, CurrentTrack.first);
-                Log.i("Internal media",""+CurrentTrack.second);
-            } else {
-                //look up the file name and load from internal storage
-                Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav");
-                mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav"));
-            }
-            currentMediaID = CurrentTrack.first;
-            if (mediaPlayer != null) {
-                mediaPlayer.setVolume(volume.first, volume.second);
-                        String mediaFileCurrent = CurrentTrack.second;
-                        mediaFilenameHistory.add(mediaFileCurrent);
-                        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
-                        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                            @Override
-                            public void onCompletion(MediaPlayer mediaPlayer) {
-                                Log.i("mediap","completed");
-                                isDelaying = true;
-                                soundsPlayed++;
-                                Handler handler = new Handler();
-                                handler.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        setNextTrack();
-                                        if (isDelaying) {
-                                            startMedia();
-                                        }
-                                    }
-                                }, DELAY);
-                    }
-                });
-            }
-            else {
-                //setNextTrack();
-            }
-
-    }
-
-
-
-  
-
-
     void getMediaData(){
         final List<String> mediaFileLines = splitFiles(files);
         Log.i("mediafiles",mediaFileLines.toString());
@@ -366,31 +278,7 @@ public class MediaHandler {
     }
 
 
-    private List<String> searchForBedtimeLog(File dir) {
-        Log.i("searching media",dir.toString());
-        List<String> mediaLines = new ArrayList<>();
-        try {
-            boolean foundFile=false;
-            for(File file: dir.listFiles()) {
-                String fileName = file.getName();
-                System.out.println(fileName);
-                if (fileName.contains(("BedtimeTaskLog"))) {
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    Log.i("searching media","file found");
-                    String firstLine = reader.readLine();
-                    System.out.println(firstLine);
-                    String line;
-                    while ((line = reader.readLine()) != null)
-                        mediaLines.add(line);
-                    foundFile=true; //mark that at least one media line was found
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.e("filerror",e.getMessage());
-        }
-        return mediaLines;
-    }
+
 
     private List<String> splitFiles(String fileList) {
         Log.i("filelist",fileList);
