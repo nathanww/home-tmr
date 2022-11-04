@@ -132,9 +132,12 @@ public class MediaHandler {
      * Pauses audio playback
      */
     public void pauseMedia(){
+        isDelaying = false;
         if (mediaPlayer != null) {
-            isDelaying = false;
             mediaPlayer.pause();
+        }
+        if (soundHandler != null) {
+            soundHandler.removeCallbacksAndMessages(null);
         }
     }
 
