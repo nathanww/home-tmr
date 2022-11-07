@@ -79,10 +79,11 @@ public class MainActivity extends AppCompatActivity {
     private String TELEMETRY_DESTINATION="http://biostream-1024.appspot.com/sendps"; //where realtime telemetry data is sent
     float ONSET_CONFIDENCE=0.9f;
     int BUFFER_SIZE = 240;
+    float MIN_NOISE=0.005f;
     float E_STOP=0.85f; //emergency stop cueing
     int BACKOFF_TIME=5*60000;
     int MAX_STIM=2000;
-    float CUE_NOISE_OFFSET=0.02f; //how much louder is the cue than the white noise
+    float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
     long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
@@ -104,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
     String fitbitStatus="";
     ToggleButton tmrStateButton;
     MediaPlayer whiteNoise;
-    double maxNoise = 0.01;
+    double maxNoise = 0.015;
     Float whiteNoiseVolume = (1.0f * (float) maxNoise);
     Float cueNoise;
     TextView volumeText;
@@ -556,7 +557,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 volumeText.setText(String.valueOf(progress));
-                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise)+0.01f;
+                whiteNoiseVolume = new Float((progress / ((float) volumeBar.getMax()))*maxNoise)+MIN_NOISE;
                 cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                 whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
                 if (progress < 1) {
@@ -595,7 +596,7 @@ public class MainActivity extends AppCompatActivity {
                             volumeBar.setProgress(1);
                         }
                         volumeText.setText(String.valueOf(volumeBar.getProgress()));
-                        whiteNoiseVolume = new Float((volumeBar.getProgress() / ((float) volumeBar.getMax()))*maxNoise)+0.01f;
+                        whiteNoiseVolume = new Float((volumeBar.getProgress() / ((float) volumeBar.getMax()))*maxNoise)+MIN_NOISE;
                         cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                         whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
 
