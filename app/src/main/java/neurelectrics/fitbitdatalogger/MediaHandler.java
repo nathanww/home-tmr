@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,8 +74,6 @@ public class MediaHandler {
     public void readFiles() {
 
                 storageDirectory = Environment.getExternalStorageDirectory();
-
-                setLogFile();
                 getMediaData();
                 filesLoaded = true;
 
@@ -207,30 +206,7 @@ public class MediaHandler {
         return volume.first;
     }
 
-    /**
-     * Sets up logFile File object. Creates the logFile if it doesn't already exist
-     */
-    private void setLogFile(){
-        logFile = new File(storageDirectory, logFileName);
-        if(!logFile.exists()) {
-            try {
-                logFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
-    /**
-     * Sets up BufferedWriter object to write to logFile
-     */
-    private void setLogFileWriter(){
-        try {
-            logFileWriter = new BufferedWriter(new FileWriter(logFile, true));
-        } catch (IOException e){
-            e.printStackTrace();
-        }
-    }
 
     /**
      * Writes a single record (1 line) to the logFile
@@ -243,15 +219,17 @@ public class MediaHandler {
      * @param rightVolume The right volume of the audio file played
      */
     private void writeToLogFile(String signal, int mediaLength, Float leftVolume, Float rightVolume){
-        setLogFileWriter();
         String timeStamp = String.valueOf(System.currentTimeMillis());
         String line = timeStamp + "," + signal + "," + String.valueOf(mediaLength) + "," +
-                String.valueOf(leftVolume) + "," + String.valueOf(rightVolume);
+                String.valueOf(leftVolume) + "," + String.valueOf(rightVolume)+"\n";
         try {
-            logFileWriter.write(line);
-            logFileWriter.newLine();
-            logFileWriter.close();
+            FileWriter fileWriter = new FileWriter(Environment.getExternalStorageDirectory() + "/MediaLog.txt", true);
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            printWriter.print(line);  //New line
+            printWriter.flush();
+            printWriter.close();
         } catch (IOException e) {
+            Log.e("Media log error",e.getMessage());
             e.printStackTrace();
         }
     }

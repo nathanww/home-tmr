@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=false; //if true, app simulates
+    boolean DEBUG_MODE=true; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -589,10 +589,22 @@ public class MainActivity extends AppCompatActivity {
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
                     if(System.currentTimeMillis() - lastpacket < 10000 || DEBUG_MODE) {
+
+                        //initialize the white nosie volume
+                        if (volumeBar.getProgress() < 1) {
+                            volumeBar.setProgress(1);
+                        }
+                        volumeText.setText(String.valueOf(volumeBar.getProgress()));
+                        whiteNoiseVolume = new Float((volumeBar.getProgress() / ((float) volumeBar.getMax()))*maxNoise)+0.01f;
+                        cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
+                        whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+
+
                         whiteNoise.start();
                         stim_seconds=0;
                         tmrStateButton.setBackgroundColor(Color.parseColor("#FF0000"));
                         turnedOnTime=System.currentTimeMillis();
+
                     } else{
 
                         //
@@ -928,7 +940,8 @@ public class MainActivity extends AppCompatActivity {
                     fitbitCount++;
                     if (fitbitCount > FITBIT_WRITE_INTERVAL) {
                         try {
-                            FileWriter fileWriter = new FileWriter(getApplicationContext().getExternalFilesDir(null) + "/fitbitdata.txt", true);
+                            Log.i("raw data  directory",Environment.getExternalStorageDirectory() + "/fitbitdata.txt");
+                            FileWriter fileWriter = new FileWriter(Environment.getExternalStorageDirectory() + "/fitbitdata.txt", true);
                             PrintWriter printWriter = new PrintWriter(fileWriter);
                             printWriter.print(fitbitBuffer);  //New line
                             printWriter.flush();
@@ -1008,7 +1021,7 @@ public class MainActivity extends AppCompatActivity {
                         System.out.println("telecheck" + urlString);
                         Log.i("telemetry", "send");
                         URL url = new URL(urlString);
-                        //url.openStream();
+                        url.openStream();
                     }
                     catch (Exception e) {
                         Log.e("telemetry error",e.getMessage());
