@@ -76,7 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private String DEFAULT_SETTINGS_FILE_NAME = "modelSettings.txt"; //where settings will be cached
     private String DEFAULT_CONFIG_FILE_NAME = "experimentConfig.txt"; //file containing the URL that will be checked to get model settings
     private String DEFAULT_DATA_LINK="https://raw.githubusercontent.com/nathanww/default_tmr_settings/main/SETTINGS.txt"; //Default URL from which to download model settings
-    private String TELEMETRY_DESTINATION="https://biostream-1024.appspot.com/sendps?"; //where realtime telemetry data is sent
+    private String TELEMETRY_DESTINATION="http://biostream-1024.appspot.com/sendps"; //where realtime telemetry data is sent
     float ONSET_CONFIDENCE=0.9f;
     int BUFFER_SIZE = 240;
     float E_STOP=0.85f; //emergency stop cueing
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=true; //if true, app simulates
+    boolean DEBUG_MODE=false; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -968,7 +968,10 @@ public class MainActivity extends AppCompatActivity {
 
                     //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
                     telemetryCount++;
-                    if (telemetryCount >= 60 || getDeviceName().indexOf("G930") == -1) { //transmit data every second if not on the G7 because the other phones have bigger data plans
+                    if (telemetryCount >= 0 ) {
+                        if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
+                            TELEMETRY_DESTINATION=TELEMETRY_DESTINATION+"?";
+                        }
                         telemetryCount = 0;
                         JSONObject remoteTeleData = new JSONObject();
                         try {
@@ -991,9 +994,24 @@ public class MainActivity extends AppCompatActivity {
                             URL url = new URL(urlString);
                             url.openStream();
                         } catch (Exception e) {
-                            Log.e("telemetry", "error");
+                            Log.e("telemetryerror", e.getMessage());
                             e.printStackTrace();
                         }
+                    }
+                }
+                else {
+                    try {
+                       if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
+                            TELEMETRY_DESTINATION=TELEMETRY_DESTINATION+"?";
+                        }
+                        String urlString = TELEMETRY_DESTINATION + "?user=" + USER_ID + "&data=" + URLEncoder.encode("debug test", StandardCharsets.UTF_8.toString());
+                        System.out.println("telecheck" + urlString);
+                        Log.i("telemetry", "send");
+                        URL url = new URL(urlString);
+                        //url.openStream();
+                    }
+                    catch (Exception e) {
+                        Log.e("telemetry error",e.getMessage());
                     }
                 }
 
