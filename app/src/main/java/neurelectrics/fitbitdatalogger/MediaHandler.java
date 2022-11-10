@@ -5,6 +5,7 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.util.Pair;
 import android.util.Log;
 
@@ -120,6 +121,7 @@ public class MediaHandler {
             });
 
             Log.i("mediap","media start");
+
 
     }
 

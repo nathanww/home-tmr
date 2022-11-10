@@ -86,11 +86,11 @@ public class MainActivity extends AppCompatActivity {
     float CUE_NOISE_OFFSET=0.0f; //how much louder is the cue than the white noise
     float CUE_NOISE_MAX=0.0f; //how much louder can the cues get than white noise
     float MAX_ADAPTION_STEP=0.015f; //If cues seem to trigger a wakeup, drop the max volume we can reach by this much
-    long ONSET_DELAY=60*60*1000; //minimumj delay before cues start
+    long ONSET_DELAY=0; //minimumj delay before cues start
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=true; //if true, app simulates
+    boolean DEBUG_MODE=false; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -776,6 +776,8 @@ public class MainActivity extends AppCompatActivity {
             }
             float avgProb=average(probBuffer);
             Log.e("avg",""+avgProb);
+            Log.i("thresh",ONSET_CONFIDENCE+","+E_STOP+","+ONSET_DELAY);
+            Log.i("sounddebuginfo",(prob >= E_STOP)+","+(avgProb >= ONSET_CONFIDENCE)+","+(System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY)+","+(System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY)+","+(MODE.indexOf("PASSIVE") == -1)+","+md.isMediaPlaying()+","+above_thresh+","+tmrStateButton.isChecked());
             if (prob >= E_STOP && avgProb >= ONSET_CONFIDENCE && System.currentTimeMillis() >= turnedOnTime+ONSET_DELAY && System.currentTimeMillis() < turnedOnTime+OFFSET_DELAY && MODE.indexOf("PASSIVE") == -1) {
                 above_thresh=1;
             }
@@ -794,7 +796,13 @@ public class MainActivity extends AppCompatActivity {
                 }
                  */
                 if (md.isMediaPlaying()){
-                    md.pauseMedia();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            md.pauseMedia();
+                        }
+                    });
+
                     /*
                     targetVolume=targetVolume-0.1f;
                     if(targetVolume < 0.1){
@@ -813,14 +821,26 @@ public class MainActivity extends AppCompatActivity {
                             whiteNoiseVolume=0.01f;
                         }
                     }
-                    md.setMediaVolume(cueNoise, cueNoise);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            md.setMediaVolume(cueNoise, cueNoise);
+                        }
+                    });
+
                     backoff_time=System.currentTimeMillis()+BACKOFF_TIME; //stim woke them up, so pause it
                 }
             }
+            Log.i("abovethresh",""+above_thresh);
 
             if (System.currentTimeMillis() < backoff_time || stim_seconds >= MAX_STIM ||  !tmrStateButton.isChecked()) {
                 if (md.isMediaPlaying()){
-                    md.pauseMedia();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            md.pauseMedia();
+                        }
+                    });
                 }
                /*
                if (mp.isPlaying()) {
@@ -843,11 +863,17 @@ public class MainActivity extends AppCompatActivity {
                     if(cueNoise > whiteNoiseVolume+CUE_NOISE_MAX){
                         cueNoise = whiteNoiseVolume+CUE_NOISE_MAX;
                     }
-                    md.setMediaVolume(cueNoise, cueNoise);
-                    if (!md.isMediaPlaying()){
-                        md.startMedia();
-                        Log.i("mediaf","fired");
-                    }
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            md.setMediaVolume(cueNoise, cueNoise);
+                            if (!md.isMediaPlaying()){
+                                md.startMedia();
+                                Log.i("mediaf","fired");
+                            }
+                        }
+                    });
+
                     /*
                     mp.setVolume(targetVolume,targetVolume);
                     if (!mp.isPlaying()) {
