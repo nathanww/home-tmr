@@ -34,15 +34,27 @@ import java.util.Random;
  * @Date Mon 1-Jun-2020
  */
 public class MediaHandler {
-    final Context context;
-    public String files="";
-    /** Constructor
-     * @param context Application Context object
-     */
-    public MediaHandler(Context context,String fileData){
+    static Context context;
+    private static MediaHandler instance=null;
 
-        this.context = context;
-        this.files=fileData;
+
+    public static String files="";
+
+    public static synchronized MediaHandler getInstance(Context contextIn,String fileData) {
+        context = contextIn;
+        files = fileData;
+
+        if (instance == null) {
+            instance=new MediaHandler();
+            instance.files=fileData;
+            instance.context=contextIn;
+        }
+        return instance;
+    }
+
+    private MediaHandler(){
+
+
     }
 
     /*

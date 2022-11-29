@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=false; //if true, app simulates
+    boolean DEBUG_MODE=true; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -178,7 +178,7 @@ public class MainActivity extends AppCompatActivity {
         if ( server != null && server.md != null) {
             if (filesList != "FILES:silent.wav") { //only update if there's a real update to be had
                 server.md.pauseMedia();
-                server.md = new MediaHandler(getApplicationContext(), filesList);
+                server.md = MediaHandler.getInstance(getApplicationContext(), filesList);
                 server.md.DELAY = ISI;
                 server.md.readFiles();
             }
@@ -706,7 +706,7 @@ public class MainActivity extends AppCompatActivity {
             //mp.setLooping(true);
             //mp.setVolume(1.0f,1.0f);
             getUserSettings();
-            md = new MediaHandler(getApplicationContext(),filesList);
+            md = MediaHandler.getInstance(getApplicationContext(), filesList);
             md.DELAY=ISI;
             md.readFiles();
 
@@ -955,7 +955,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("stage3","1");
                 }
                 */
-                if (!DEBUG_MODE) { //extra telemetry is not available in debug mode, so don't do anything with it
+                if (!DEBUG_MODE || true) { //extra telemetry is not available in debug mode, so don't do anything with it
                     String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
 
                     fitbitStatus = parameters.toString().split("data=\\{")[1];
