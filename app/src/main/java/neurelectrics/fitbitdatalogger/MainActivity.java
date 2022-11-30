@@ -90,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
     long OFFSET_DELAY=3*60*60*1000;
     int ISI=10000; //inter stimulus interval in ms
     String MODE=""; //for specifiying specific modes like never playing any sound etc
-    boolean DEBUG_MODE=true; //if true, app simulates
+    boolean DEBUG_MODE=false; //if true, app simulates
     long turnedOnTime=0;
     int above_thresh=0;
     double backoff_time=0;
@@ -120,6 +120,7 @@ public class MainActivity extends AppCompatActivity {
     int fitbitCount=0;
     String filesList="FILES:silent.wav"; //list of files loaded from Github
     ArrayList<Float> probBuffer=new ArrayList<Float>();
+    boolean oncreateRan=false; //used to control execution of things that should run only once
 
 
     boolean conFixArm=false; //whether the app can self-restart
@@ -159,15 +160,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-/*
     protected void onPause() {
     super.onPause();
-        PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-        PowerManager.WakeLock powerOn=pm.newWakeLock(PowerManager.FULL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP,"poweron");
-        powerOn.acquire();
-        powerOn.release();
-        Log.e("Datacollector","Turn screen on");
-    }*/
+    }
 
     /*
         NEXT TASK
@@ -469,11 +464,13 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SharedPreferences launchTime = getSharedPreferences("launch", MODE_PRIVATE);
 
 
 
         super.onCreate(savedInstanceState);
         final Context cont = this;
+
         Log.i("fitbit","oncreate was called");
         getUserSettings();
 
@@ -505,16 +502,19 @@ public class MainActivity extends AppCompatActivity {
         wakeLock.acquire();// get the wakelock
         DataHandler DataHandlerTask = new DataHandler();
         DataHandlerTask.execute();
+        if (server == null) {
+            //start the Fitbit server
 
-        //start the Fitbit server
-        server = new fitbitServer();
-        try {
-            server.start();
-        } catch(IOException ioe) {
-            Log.w("Httpd", "The server could not start.");
+            SharedPreferences.Editor editor = launchTime.edit();
+            editor.commit();
+            server = new fitbitServer();
+            try {
+                server.start();
+            } catch (IOException ioe) {
+                Log.w("Httpd", "The server could not start.");
+            }
+            Log.w("Httpd", "Web server initialized 22.");
         }
-        Log.w("Httpd", "Web server initialized.");
-
         fileServer = new savedDataServer();
         try {
             fileServer.start();
@@ -599,6 +599,7 @@ public class MainActivity extends AppCompatActivity {
                         whiteNoiseVolume = new Float((volumeBar.getProgress() / ((float) volumeBar.getMax()))*maxNoise)+MIN_NOISE;
                         cueNoise = whiteNoiseVolume+CUE_NOISE_OFFSET;
                         whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
+                        whiteNoise.setVolume(whiteNoiseVolume, whiteNoiseVolume);
 
 
                         whiteNoise.start();
@@ -630,6 +631,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         maximizeSystemVolume();
+
         getUserSettings();
 
         final Button dreemOpenButton = (Button) findViewById(R.id.openDreem);
@@ -728,7 +730,7 @@ public class MainActivity extends AppCompatActivity {
                     //DEBUG CODE--MAKES THE SOUNDS START IMMEDIATELY
                     if (DEBUG_MODE) {
                         ONSET_DELAY = 0;
-                        handleStaging(0.99f);
+                        //handleStaging(0.99f);
                         backoff_time=0;
                         BACKOFF_TIME=0;
 
@@ -768,6 +770,7 @@ public class MainActivity extends AppCompatActivity {
             return sum / data.size();
         }
         String handleStaging(float prob) {
+
             Log.e("stage",prob+"");
             String tmrStatus="0,";
             probBuffer.add(prob);
@@ -895,15 +898,16 @@ public class MainActivity extends AppCompatActivity {
                               Map<String, String> files) {
             Log.e("fitbitserver","request");
             if (uri.indexOf("rawdata") > -1) { //recieved a data packet from the Fitbit, set the Fitbit status to good.
-                lastpacket=System.currentTimeMillis();
-                runOnUiThread(new Runnable() {
+                if (System.currentTimeMillis() - lastpacket >= 500) { //require at least a 500 ms delay to make sure this is not a duplicate packet
+                    lastpacket = System.currentTimeMillis();
+                    runOnUiThread(new Runnable() {
 
-                    @Override
-                    public void run() {
-                        TextView fStatus = (TextView) findViewById(R.id.fConnectionStatus);
-                        fStatus.setText("✔️ Fitbit connected");
-                    }
-                });
+                        @Override
+                        public void run() {
+                            TextView fStatus = (TextView) findViewById(R.id.fConnectionStatus);
+                            fStatus.setText("✔️ Fitbit connected");
+                        }
+                    });
 
                 /*
                 if(downloadPrevious) {
@@ -927,26 +931,25 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 */
-                String staging="";
-                String is3current = "unset";
-                //check to see if stages are available
-                if (parameters.toString().indexOf("is3") > -1) { //yes they are
-                    String split=parameters.toString().split("( is3=1 )")[1];
-                    split=split.split(",")[0].replace(")\":","").replace("}","");
-                    float prob;
-                    try{
-                        prob = Float.parseFloat(split);
+                    String staging = "";
+                    String is3current = "unset";
+                    //check to see if stages are available
+                    if (parameters.toString().indexOf("is3") > -1) { //yes they are
+                        String split = parameters.toString().split("( is3=1 )")[1];
+                        split = split.split(",")[0].replace(")\":", "").replace("}", "");
+                        float prob;
+                        try {
+                            prob = Float.parseFloat(split);
+                        } catch (NumberFormatException e) {
+                            prob = 0;
+                        }
+                        if (DEBUG_MODE) {
+                            prob = 0.99f;
+                        }
+                        is3current = String.valueOf(prob);
+                        staging = handleStaging(prob);
+                        Log.e("stage3", split);
                     }
-                    catch(NumberFormatException e){
-                        prob = 0;
-                    }
-                    if (DEBUG_MODE) {
-                        prob=0.99f;
-                    }
-                    is3current = String.valueOf(prob);
-                    staging=handleStaging(prob);
-                    Log.e("stage3",split);
-                }
                 /*
                 String staging="";
                 if (true) { //yes they are
@@ -955,107 +958,105 @@ public class MainActivity extends AppCompatActivity {
                     Log.e("stage3","1");
                 }
                 */
-                if (!DEBUG_MODE || true) { //extra telemetry is not available in debug mode, so don't do anything with it
-                    String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
+                    if (!DEBUG_MODE) { //extra telemetry is not available in debug mode, so don't do anything with it
+                        String[] fitbitParams = parameters.toString().replace(":", ",").split(","); //split up individual data vals
 
-                    fitbitStatus = parameters.toString().split("data=\\{")[1];
+                        fitbitStatus = parameters.toString().split("data=\\{")[1];
 
-                    String hrCurrent = (fitbitParams[1]); //HEART RATE
-                    String batteryCurrent = (fitbitParams[19].split("STAGE")[0].replace("}", "")); //BATTERY
-                    //Log.e("fitbit",fitbitStatus);
-                    fitbitBuffer = fitbitBuffer + fitbitStatus + "," + staging + "\n";
-                    fitbitCount++;
-                    if (fitbitCount > FITBIT_WRITE_INTERVAL) {
-                        try {
-                            Log.i("raw data  directory",Environment.getExternalStorageDirectory() + "/fitbitdata.txt");
-                            FileWriter fileWriter = new FileWriter(Environment.getExternalStorageDirectory() + "/fitbitdata.txt", true);
-                            PrintWriter printWriter = new PrintWriter(fileWriter);
-                            printWriter.print(fitbitBuffer);  //New line
-                            printWriter.flush();
-                            printWriter.close();
-                            fitbitCount = 0;
-                            fitbitBuffer = "";
-                        } catch (IOException e) {
-                            Log.e("Fitbitserver", "Error writing to file");
+                        String hrCurrent = (fitbitParams[1]); //HEART RATE
+                        String batteryCurrent = (fitbitParams[19].split("STAGE")[0].replace("}", "")); //BATTERY
+                        //Log.e("fitbit",fitbitStatus);
+                        fitbitBuffer = fitbitBuffer + fitbitStatus + "," + staging + "\n";
+                        fitbitCount++;
+                        if (fitbitCount > FITBIT_WRITE_INTERVAL) {
+                            try {
+                                Log.i("raw data  directory", Environment.getExternalStorageDirectory() + "/fitbitdata.txt");
+                                FileWriter fileWriter = new FileWriter(Environment.getExternalStorageDirectory() + "/fitbitdata.txt", true);
+                                PrintWriter printWriter = new PrintWriter(fileWriter);
+                                printWriter.print(fitbitBuffer);  //New line
+                                printWriter.flush();
+                                printWriter.close();
+                                fitbitCount = 0;
+                                fitbitBuffer = "";
+                            } catch (IOException e) {
+                                Log.e("Fitbitserver", "Error writing to file");
+                            }
                         }
-                    }
 
-                    String is3average;
-                    if (probBuffer.size() > 0) {
-                        is3average = String.valueOf(average(probBuffer));
+                        String is3average;
+                        if (probBuffer.size() > 0) {
+                            is3average = String.valueOf(average(probBuffer));
+                        } else {
+                            is3average = "unset";
+                        }
+
+                        String mediaPlayingCurrently = String.valueOf(md.isMediaPlaying());
+                        String cueCountCurrently = String.valueOf(md.getCueCount());
+
+                        String volumeCurrently = String.valueOf(md.getVolume());
+
+                        String isPhonePluggedInCurrently = String.valueOf(isPluggedIn());
+                        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                        String isScreenOnCurrently = String.valueOf(pm.isInteractive());
+
+                        //REMOTE TELEMETRY FUNCTIONALITY
+                        //Heart rate - hrCurrent
+                        //Current probability of stage 3 - is3current
+                        //Averaged probability of stage 3 - is3average
+                        //Is TMR running or not - mediaPlayingCurrently
+                        //Current volume - volumeCurrently
+                        //FB battery level - batteryCurrent
+                        //Phone plugged in - isPhonePluggedInCurrently
+                        //Phone screen on - isScreenOnCurrently
+
+                        //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
+                        telemetryCount++;
+                        if (telemetryCount >= 0) {
+                            if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
+                                TELEMETRY_DESTINATION = TELEMETRY_DESTINATION + "?";
+                            }
+                            telemetryCount = 0;
+                            JSONObject remoteTeleData = new JSONObject();
+                            try {
+                                remoteTeleData.put("hr", hrCurrent);
+                                remoteTeleData.put("is3", is3current);
+                                remoteTeleData.put("is3avg", is3average);
+                                remoteTeleData.put("TMRon", mediaPlayingCurrently);
+                                remoteTeleData.put("vlm", volumeCurrently);
+                                remoteTeleData.put("bat", batteryCurrent);
+                                remoteTeleData.put("plugin", isPhonePluggedInCurrently);
+                                remoteTeleData.put("scrnOn", isScreenOnCurrently);
+                                remoteTeleData.put("fullStatus", fitbitStatus);
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            try {
+                                String urlString = TELEMETRY_DESTINATION + "user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
+                                System.out.println("tele" + urlString);
+                                Log.i("telemetry", "send");
+                                URL url = new URL(urlString);
+                                url.openStream();
+                            } catch (Exception e) {
+                                Log.e("telemetryerror", e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
                     } else {
-                        is3average = "unset";
-                    }
-
-                    String mediaPlayingCurrently = String.valueOf(md.isMediaPlaying());
-                    String cueCountCurrently = String.valueOf(md.getCueCount());
-
-                    String volumeCurrently = String.valueOf(md.getVolume());
-
-                    String isPhonePluggedInCurrently = String.valueOf(isPluggedIn());
-                    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-                    String isScreenOnCurrently = String.valueOf(pm.isInteractive());
-
-                    //REMOTE TELEMETRY FUNCTIONALITY
-                    //Heart rate - hrCurrent
-                    //Current probability of stage 3 - is3current
-                    //Averaged probability of stage 3 - is3average
-                    //Is TMR running or not - mediaPlayingCurrently
-                    //Current volume - volumeCurrently
-                    //FB battery level - batteryCurrent
-                    //Phone plugged in - isPhonePluggedInCurrently
-                    //Phone screen on - isScreenOnCurrently
-
-                    //send a telemetry thing only once evwery minute to avoid using ridiculuous amounts of data
-                    telemetryCount++;
-                    if (telemetryCount >= 0 ) {
-                        if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
-                            TELEMETRY_DESTINATION=TELEMETRY_DESTINATION+"?";
-                        }
-                        telemetryCount = 0;
-                        JSONObject remoteTeleData = new JSONObject();
                         try {
-                            remoteTeleData.put("hr", hrCurrent);
-                            remoteTeleData.put("is3", is3current);
-                            remoteTeleData.put("is3avg", is3average);
-                            remoteTeleData.put("TMRon", mediaPlayingCurrently);
-                            remoteTeleData.put("vlm", volumeCurrently);
-                            remoteTeleData.put("bat", batteryCurrent);
-                            remoteTeleData.put("plugin", isPhonePluggedInCurrently);
-                            remoteTeleData.put("scrnOn", isScreenOnCurrently);
-                            remoteTeleData.put("fullStatus", fitbitStatus);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            String urlString = TELEMETRY_DESTINATION + "user=" + USER_ID + "&data=" + URLEncoder.encode(remoteTeleData.toString(), StandardCharsets.UTF_8.toString());
-                            System.out.println("tele" + urlString);
+                            if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
+                                TELEMETRY_DESTINATION = TELEMETRY_DESTINATION + "?";
+                            }
+                            String urlString = TELEMETRY_DESTINATION + "?user=" + USER_ID + "&data=" + URLEncoder.encode("debug test", StandardCharsets.UTF_8.toString());
+                            System.out.println("telecheck" + urlString);
                             Log.i("telemetry", "send");
                             URL url = new URL(urlString);
                             url.openStream();
                         } catch (Exception e) {
-                            Log.e("telemetryerror", e.getMessage());
-                            e.printStackTrace();
+                            Log.e("telemetry error", e.getMessage());
                         }
                     }
-                }
-                else {
-                    try {
-                       if (TELEMETRY_DESTINATION.indexOf("?") == -1) { //standardizing the URL, add a question mark if one doesn't exist
-                            TELEMETRY_DESTINATION=TELEMETRY_DESTINATION+"?";
-                        }
-                        String urlString = TELEMETRY_DESTINATION + "?user=" + USER_ID + "&data=" + URLEncoder.encode("debug test", StandardCharsets.UTF_8.toString());
-                        System.out.println("telecheck" + urlString);
-                        Log.i("telemetry", "send");
-                        URL url = new URL(urlString);
-                        url.openStream();
-                    }
-                    catch (Exception e) {
-                        Log.e("telemetry error",e.getMessage());
-                    }
-                }
 
-
+                }
             }
             // Log.i("server", parameters.toString());
             /*
