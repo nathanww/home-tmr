@@ -36,7 +36,7 @@ import java.util.Random;
 public class MediaHandler {
     static Context context;
     private static MediaHandler instance=null;
-
+    double lastPlayed=0;
 
     public static String files="";
 
@@ -107,26 +107,29 @@ public class MediaHandler {
             //start the timing loop
             soundHandler.post(new Runnable() {
                 public void run() {
-                    if (mfindex >= mediaFileNames.size()) { //if we've reached the end, then reset
-                        mfindex=0;
-                    }
-                    Pair<Integer,String> CurrentTrack = mediaFileNames.get(mfindex);
-                    mfindex++;
-                    if (CurrentTrack.first > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
-                        mediaPlayer = MediaPlayer.create(context, CurrentTrack.first);
-                        Log.i("Internal media",""+CurrentTrack.second);
-                    } else {
-                        //look up the file name and load from internal storage
-                        Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav");
-                        mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second+".wav"));
-                    }
-                    currentMediaID = CurrentTrack.first;
-                    if (mediaPlayer != null) {
-                        mediaPlayer.setVolume(volume.first, volume.second);
-                        String mediaFileCurrent = CurrentTrack.second;
-                        mediaFilenameHistory.add(mediaFileCurrent);
-                        writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
-                        mediaPlayer.start();
+                    if (System.currentTimeMillis() >= lastPlayed+DELAY) {
+                        if (mfindex >= mediaFileNames.size()) { //if we've reached the end, then reset
+                            mfindex = 0;
+                        }
+                        Pair<Integer, String> CurrentTrack = mediaFileNames.get(mfindex);
+                        mfindex++;
+                        if (CurrentTrack.first > 0) { //load media from resource if it is an internal file, or load media externally if it is an external file
+                            mediaPlayer = MediaPlayer.create(context, CurrentTrack.first);
+                            Log.i("Internal media", "" + CurrentTrack.second);
+                        } else {
+                            //look up the file name and load from internal storage
+                            Log.i("external media", Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second + ".wav");
+                            mediaPlayer = MediaPlayer.create(context, Uri.parse(Environment.getExternalStorageDirectory().getPath() + "/" + CurrentTrack.second + ".wav"));
+                        }
+                        currentMediaID = CurrentTrack.first;
+                        if (mediaPlayer != null) {
+                            mediaPlayer.setVolume(volume.first, volume.second);
+                            String mediaFileCurrent = CurrentTrack.second;
+                            mediaFilenameHistory.add(mediaFileCurrent);
+                            writeToLogFile(mediaFileCurrent, mediaPlayer.getDuration(), volume.first, volume.second);
+                            mediaPlayer.start();
+                        }
+                        lastPlayed = System.currentTimeMillis();
                     }
                     soundHandler.postDelayed(this, DELAY);
                 }
